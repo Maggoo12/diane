@@ -12,7 +12,7 @@
  * Entry data is NOT here — that lives in IndexedDB (see js/db.js).
  */
 
-const CACHE_VERSION = 'diane-v7';
+const CACHE_VERSION = 'diane-v8';
 const SHELL = [
   './',
   './index.html',
@@ -27,6 +27,8 @@ const SHELL = [
   './js/debrief.js',
   './js/speak.js',
   './js/seed.js',
+  './js/backup.js',
+  './js/reminders.js',
   './manifest.webmanifest',
   './icons/icon.svg',
 ];
@@ -64,4 +66,63 @@ self.addEventListener('fetch', (event) => {
         caches.match(request).then((cached) => cached || caches.match('./index.html'))
       )
   );
+});
+
+// --- reminder notifications ---------------------------------------------
+// Snooze/skip write flags into the "meta" store that js/reminders.js reads.
+// Keep this version in sync with DB_VERSION in js/db.js.
+const DB_VERSION = 3;
+
+function metaSet(k, v) {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('diane', DB_VERSION);
+    req.onerror = () => reject(req.error);
+    req.onsuccess = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('meta')) { db.close(); return resolve(); }
+      const tx = db.transaction('meta', 'readwrite');
+      tx.objectStore('meta').put({ k, v });
+      tx.oncomplete = () => { db.close(); resolve(); };
+      tx.onerror = () => { db.close(); reject(tx.error); };
+    };
+  });
+}
+
+function mondayOf(date = new Date()) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+self.addEventListener('notificationclick', (event) => {
+  const kind = event.notification.data?.kind || 'daily';
+  const action = event.action;
+  event.notification.close();
+
+  if (action === 'snooze') {
+    const until = new Date(Date.now() + 3600 * 1000).toISOString();
+    event.waitUntil(metaSet(`rem.${kind}SnoozeUntil`, until));
+    return;
+  }
+  if (action === 'skip' && kind === 'weekly') {
+    event.waitUntil(metaSet('rem.weeklySkip', mondayOf()));
+    return;
+  }
+
+  // Body tap or "open": focus an existing window, else open one.
+  const target = kind === 'weekly' ? './#week' : './';
+  event.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of wins) {
+      if ('focus' in c) {
+        c.postMessage({ type: 'reminder-open', kind });
+        return c.focus();
+      }
+    }
+    return self.clients.openWindow(target);
+  })());
 });

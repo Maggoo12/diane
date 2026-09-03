@@ -138,6 +138,54 @@
         <input id="set-rate" type="range" min="0.6" max="1.6" step="0.1" value="1" />
       </label>
 
+      <hr class="settings-rule" />
+
+      <div class="field">
+        <span>Reminders</span>
+        <label class="check-row">
+          <input id="rem-enabled" type="checkbox" />
+          <span>Enable notifications</span>
+        </label>
+        <small id="rem-status" class="muted" aria-live="polite"></small>
+      </div>
+
+      <label class="field">
+        <span>Daily nudge at</span>
+        <input id="rem-daily-time" type="time" />
+        <small class="muted">Leave blank for no daily reminder. Only nudges on days with no entry yet.</small>
+      </label>
+
+      <div class="field">
+        <span>Weekly debrief reminder</span>
+        <div class="row-2">
+          <select id="rem-weekly-day">
+            <option value="0">Sunday</option>
+            <option value="1">Monday</option>
+            <option value="2">Tuesday</option>
+            <option value="3">Wednesday</option>
+            <option value="4">Thursday</option>
+            <option value="5">Friday</option>
+            <option value="6">Saturday</option>
+          </select>
+          <input id="rem-weekly-time" type="time" value="19:00" />
+        </div>
+      </div>
+
+      <hr class="settings-rule" />
+
+      <div class="field">
+        <span>Backup</span>
+        <div class="debrief-actions">
+          <button id="backup-export" class="secondary-btn">Export backup</button>
+          <button id="backup-import-btn" class="secondary-btn">Import backup</button>
+          <input id="backup-import-file" type="file" accept="application/json,.json" hidden />
+        </div>
+        <div id="backup-progress" class="progress" hidden><div class="progress__bar"></div></div>
+        <small id="backup-status" class="muted" aria-live="polite"></small>
+      </div>
+
+      <hr class="settings-rule" />
+
       <div class="field">
         <span>Sample data (dev)</span>
         <div class="debrief-actions">

@@ -174,8 +174,37 @@ details[open] > .card__title { margin-bottom: var(--gap); }
   font: inherit;
 }
 .field input[type="range"] { width: 100%; }
+.field input[type="time"] {
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid #2b303b;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+}
 .muted { color: var(--text-dim); font-size: 0.8rem; }
 .secondary-btn.danger { color: var(--danger); }
+
+.settings-rule { border: 0; border-top: 1px solid #2b303b; margin: 4px 0 18px; }
+.check-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.check-row input { width: 18px; height: 18px; }
+.row-2 { display: flex; gap: 8px; }
+.row-2 > * { flex: 1; }
+
+.progress {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 4px 0;
+}
+.progress__bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
 
 /* Capture -------------------------------------------------------------------*/
 .capture {

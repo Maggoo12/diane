@@ -6,12 +6,14 @@
  *   - "audio"   : raw voice recordings, keyed by id, kept separate so the
  *                 timeline can load fast without pulling big blobs
  *   - "goals"   : the goals the user sets for a given week
+ *   - "meta"    : small key/value bits both the app and the service worker
+ *                 need to read (reminder schedule, snooze/skip flags)
  *
  * Every function returns a Promise so callers can `await` them.
  */
 
 const DB_NAME = 'diane';
-const DB_VERSION = 2; // v2 added the "goals" store
+const DB_VERSION = 3; // v2 added "goals", v3 added "meta"
 
 let dbPromise = null;
 
@@ -39,6 +41,10 @@ function openDB() {
         const goals = db.createObjectStore('goals', { keyPath: 'id' });
         // Goals are grouped by the week they belong to (Monday's date string).
         goals.createIndex('weekOf', 'weekOf');
+      }
+
+      if (!db.objectStoreNames.contains('meta')) {
+        db.createObjectStore('meta', { keyPath: 'k' });
       }
     };
 
@@ -252,7 +258,66 @@ export async function deleteGoal(id) {
   await txDone(tx);
 }
 
-/** Wipe everything — backs the "delete all" privacy control. */
+/** Every goal across every week — for backup export. */
+export async function getAllGoals() {
+  const db = await openDB();
+  const tx = db.transaction('goals', 'readonly');
+  return promisify(tx.objectStore('goals').getAll());
+}
+
+// --- audio (bulk, for backup) -----------------------------------------
+export async function getAllAudio() {
+  const db = await openDB();
+  const tx = db.transaction('audio', 'readonly');
+  return promisify(tx.objectStore('audio').getAll()); // [{ id, blob }]
+}
+
+// --- meta (key/value the SW can also read) --------------------------
+export async function getMeta(k) {
+  const db = await openDB();
+  const tx = db.transaction('meta', 'readonly');
+  const rec = await promisify(tx.objectStore('meta').get(k));
+  return rec ? rec.v : undefined;
+}
+export async function setMeta(k, v) {
+  const db = await openDB();
+  const tx = db.transaction('meta', 'readwrite');
+  tx.objectStore('meta').put({ k, v });
+  await txDone(tx);
+}
+
+// --- backup restore -----------------------------------------------
+/**
+ * Write a backup's contents back into the DB.
+ * @param {{entries?: object[], goals?: object[], audio?: {id, blob}[]}} data
+ * @param {{replace?: boolean, onProgress?: (done:number,total:number)=>void}} opts
+ */
+export async function restoreAll({ entries = [], goals = [], audio = [] }, { replace = true, onProgress } = {}) {
+  const db = await openDB();
+
+  if (replace) {
+    const c = db.transaction(['entries', 'audio', 'goals'], 'readwrite');
+    c.objectStore('entries').clear();
+    c.objectStore('audio').clear();
+    c.objectStore('goals').clear();
+    await txDone(c);
+  }
+
+  const total = entries.length + goals.length + audio.length;
+  let done = 0;
+  const bump = () => onProgress?.(++done, total);
+
+  const tx = db.transaction(['entries', 'audio', 'goals'], 'readwrite');
+  for (const e of entries) { tx.objectStore('entries').put(e); bump(); }
+  for (const g of goals) { tx.objectStore('goals').put(g); bump(); }
+  for (const a of audio) { tx.objectStore('audio').put(a); bump(); }
+  await txDone(tx);
+
+  return { entries: entries.length, goals: goals.length, audio: audio.length };
+}
+
+/** Wipe all journal content — backs the "delete all" privacy control.
+ *  Leaves "meta" (reminder schedule/flags) alone; those are config, not data. */
 export async function clearAll() {
   const db = await openDB();
   const tx = db.transaction(['entries', 'audio', 'goals'], 'readwrite');
