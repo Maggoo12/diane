@@ -57,7 +57,19 @@ in Phase 2.
 - [x] **"How's my week so far?" — on-demand check-in.** Button in the Week
       view; `mode: 'midweek'` swaps in a shorter, nudge-framed prompt. Voice
       command ("hey Diane, how's my week?") still later.
-- [ ] **Storage.** Local-first. Full export (entries + audio) in an open format.
+- [ ] **Backup / import / export.** Because it's local-first, an uninstall,
+      cleared browser data, or a new phone wipes everything — a backup path is
+      not optional.
+  - [ ] **Export** the whole journal (entries + goals + audio) to one file in
+        an open format — JSON manifest plus the audio blobs (a `.zip`, or a
+        single JSON with base64 audio for simplicity first).
+  - [ ] **Import** that file back on a fresh install: merge or replace, with a
+        confirm step before it touches existing data.
+  - [ ] Both show a **progress bar** (audio blobs make this slow enough to
+        need one) and a clear **"done" confirmation** with a count of what
+        moved.
+  - [ ] Later: optional auto-backup to a user-chosen destination (their own
+        cloud drive / file share) on a schedule — never a Diane-run server.
 - [ ] **Privacy basics.** Encrypted at rest; one-tap delete-all. Fuller
       provider/data story in **Privacy & AI providers** below.
 
