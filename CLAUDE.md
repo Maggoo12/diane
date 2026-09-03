@@ -33,8 +33,14 @@ by voice ("add to work notebook…").
   `js/speak.js` (browser `speechSynthesis`, voice picker). "How's my week so
   far?" midweek mode + "Full weekly debrief". `js/seed.js` loads ~3 weeks of
   synthetic entries + goals ("Load sample month" in Settings).
-- **Not yet verified:** a real Claude API call (needs Magnus's key), real TTS
-  audio, voice capture (needs a device mic). Request shape is verified.
+- **Transcription:** Web Speech API abandoned (fails `network` on Magnus's
+  network, no offline). `js/transcribe.js` now POSTs the recorded blob to
+  **Groq Whisper** (`whisper-large-v3-turbo`) with the user's on-device key.
+  Voice entry saves as "pending", transcribes in the background, ↻ on the
+  entry retries. Needs Magnus's free Groq key for a real run.
+- **Not yet verified with real keys:** the Claude debrief call worked once
+  (Magnus pasted a great weekly output); Groq transcription and real TTS audio
+  still pending his keys / a device test.
 - **Not built:** daily reminder, end-of-week notification, tone picker,
   offline transcription queue, full export, the serverless proxy for the API
   key (fine while it's just Magnus on his own device).
