@@ -94,6 +94,7 @@ export function initCapture(onSaved) {
   let liveText = '';
   let stream = null;
   let pressStartedAt = 0;
+  let pointerDown = false; // is the finger still on the button right now
   let busy = false; // true while start/stop is mid-flight, to ignore extra presses
 
   labelEl.textContent = IDLE_LABEL;
@@ -136,7 +137,9 @@ export function initCapture(onSaved) {
     transcriber.start();
 
     holdBtn.classList.add('is-recording');
-    labelEl.textContent = 'Tap to stop';
+    // If the finger is still down we're in a hold; if it already lifted (a
+    // quick tap, or the mic prompt outlasted the press) we're in tap mode.
+    labelEl.textContent = pointerDown ? 'Release to stop' : 'Tap to stop';
     busy = false;
   }
 
@@ -179,16 +182,19 @@ export function initCapture(onSaved) {
     if (mediaRecorder) {
       stopRecording(); // already recording (toggle mode) → this press stops it
     } else {
+      pointerDown = true;
       pressStartedAt = Date.now();
       startRecording();
     }
   });
 
   function onRelease() {
-    // Long press = a deliberate hold, so release stops it. Quick press = a
-    // click: leave it recording until the next press.
-    if (mediaRecorder && Date.now() - pressStartedAt >= HOLD_MS) {
-      stopRecording();
+    pointerDown = false;
+    if (!mediaRecorder) return; // still starting up; startRecording sorts the label
+    if (Date.now() - pressStartedAt >= HOLD_MS) {
+      stopRecording(); // it was a deliberate hold — release ends it
+    } else {
+      labelEl.textContent = 'Tap to stop'; // it was a tap — keep recording
     }
   }
   holdBtn.addEventListener('pointerup', onRelease);
