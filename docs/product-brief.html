@@ -1,0 +1,453 @@
+<title>Voice Journal Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --paper: #F5F4F1;
+    --surface: #FFFFFF;
+    --ink: #1D1C21;
+    --muted: #6C6971;
+    --faint: #96939B;
+    --rule: #E4E2DD;
+    --accent: #4F46C9;
+    --accent-soft: #ECEBFA;
+    --accent-ink: #322C82;
+    --warn-ink: #8A5C12;
+    --warn-bg: #F4E9D2;
+    --hard-ink: #9E332B;
+    --hard-bg: #F6E1DE;
+
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #161519;
+      --surface: #1F1E24;
+      --ink: #ECEAE4;
+      --muted: #A5A1A9;
+      --faint: #7E7B83;
+      --rule: #302E36;
+      --accent: #9F97F2;
+      --accent-soft: #232052;
+      --accent-ink: #CBC6F8;
+      --warn-ink: #E0B057;
+      --warn-bg: #372E16;
+      --hard-ink: #E98980;
+      --hard-bg: #3C2320;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #161519;
+    --surface: #1F1E24;
+    --ink: #ECEAE4;
+    --muted: #A5A1A9;
+    --faint: #7E7B83;
+    --rule: #302E36;
+    --accent: #9F97F2;
+    --accent-soft: #232052;
+    --accent-ink: #CBC6F8;
+    --warn-ink: #E0B057;
+    --warn-bg: #372E16;
+    --hard-ink: #E98980;
+    --hard-bg: #3C2320;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .doc {
+    max-width: 768px;
+    margin: 0 auto;
+    padding: 60px 32px 104px;
+  }
+
+  a { color: var(--accent); text-underline-offset: 2px; }
+
+  /* ---- header ---- */
+  .eyebrow {
+    margin: 0;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 2.6rem;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    margin: 14px 0 0;
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  h1 .wn {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 4px 9px;
+    transform: translateY(-4px);
+  }
+
+  .lede {
+    font-family: var(--serif);
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-size: 1.25rem;
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 18px 0 0;
+    max-width: 60ch;
+    text-wrap: balance;
+  }
+
+  .meta {
+    margin: 20px 0 0;
+    padding-bottom: 26px;
+    border-bottom: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: 0.76rem;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+  }
+  .meta b { color: var(--faint); font-weight: 500; }
+
+  /* ---- sections ---- */
+  .sec { margin-top: 42px; }
+
+  .sec > .tag {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.32rem;
+    letter-spacing: -0.005em;
+    margin: 6px 0 12px;
+  }
+
+  h3 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+
+  p { margin: 0 0 12px; max-width: 66ch; }
+  .sec p:last-child { margin-bottom: 0; }
+
+  ul { margin: 0 0 12px; padding-left: 1.1em; max-width: 66ch; }
+  li { margin: 0 0 6px; }
+  li::marker { color: var(--faint); }
+
+  strong { font-weight: 600; }
+
+  .cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 30px;
+  }
+  .cols > div { min-width: 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+
+  .callout {
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-top: 6px;
+  }
+  .callout h2 {
+    color: var(--accent-ink);
+    margin-top: 0;
+  }
+  .callout p { color: var(--accent-ink); margin-bottom: 0; }
+
+  /* ---- table ---- */
+  .scroll { overflow-x: auto; margin: 0 0 4px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 460px;
+  }
+  th {
+    text-align: left;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--faint);
+    padding: 0 14px 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  td {
+    padding: 10px 14px 10px 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  tr td:last-child, tr th:last-child { padding-right: 0; }
+
+  /* ---- figures list ---- */
+  .figs {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .figs li {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .figs li:last-child { border-bottom: 0; }
+  .figs .n { font-family: var(--mono); color: var(--muted); white-space: nowrap; }
+
+  /* ---- chips ---- */
+  .chip {
+    display: inline-block;
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 999px;
+    margin-right: 8px;
+  }
+  .chip.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .chip.hard { background: var(--hard-bg); color: var(--hard-ink); }
+  .risk { margin: 0 0 10px; }
+  .risk p { margin: 6px 0 0; }
+
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  @media (max-width: 620px) {
+    h1 { font-size: 2.1rem; }
+    .lede { font-size: 1.12rem; }
+    .cols { grid-template-columns: 1fr; gap: 4px; }
+    .doc { padding: 44px 20px 72px; }
+  }
+
+  @media print {
+    body { background: #fff; color: #000; }
+    .doc { max-width: none; padding: 0; }
+    .card, .callout { border: 1px solid #ccc; background: #fff; }
+    a { color: #000; }
+  }
+</style>
+
+<article class="doc">
+
+  <p class="eyebrow">Product Brief · v0.1</p>
+  <h1>Diane <span class="wn">working name</span></h1>
+  <p class="lede">A journal you talk to. Catch a thought in one press — spoken or typed — filed by date and time. Once a week, an AI voice walks you through what happened.</p>
+  <p class="meta"><b>Author</b> Magnus &nbsp;·&nbsp; <b>Date</b> 3 Sep 2026 &nbsp;·&nbsp; <b>Status</b> Exploration &nbsp;·&nbsp; <b>Basis</b> Market scan, 15+ journaling &amp; capture apps</p>
+
+  <section class="sec">
+    <span class="tag">01 — Problem</span>
+    <h2>The habit that never sticks</h2>
+    <p>Journaling is repeatedly recommended for memory and self-reflection, but the habit collapses for most people: writing an entry is too much friction in the moment, and there is almost no payoff between writing something and never reading it again. The people who would benefit most — busy, poor recall — are the least likely to sit down and type.</p>
+  </section>
+
+  <section class="sec">
+    <span class="tag">02 — The idea</span>
+    <h2>Built around two moments</h2>
+    <div class="cols">
+      <div>
+        <h3>Capture</h3>
+        <p>Press and hold from the pocket, speak, release. The entry is transcribed and filed chronologically with date and time. Typing is a first-class alternative, chosen per entry. Target: talking within one second of the press; works offline; a haptic confirms it saved.</p>
+      </div>
+      <div>
+        <h3>Debrief</h3>
+        <p>Once a week, an AI voice — user picks the voice and the tone — narrates how the week went: progress on goals you set, memorable entries, patterns worth noticing. It is a reason to come back even after a skipped day.</p>
+      </div>
+    </div>
+    <p>Later layers: correlate entries with wearable and health data; multiple notebooks addressed by voice (“add to work notebook…”).</p>
+  </section>
+
+  <section class="sec">
+    <span class="tag">03 — Audience</span>
+    <h2>Who it is for, who pays</h2>
+    <ul>
+      <li><strong>Primary:</strong> reflective professionals and self-improvement-minded people, roughly 25–45, who have already tried and abandoned a written journal.</li>
+      <li><strong>Secondary:</strong> people tracking health changes against life events — sleep, resting heart rate, blood pressure.</li>
+      <li><strong>Payer:</strong> the end user, via direct subscription. Not ad-supported — the content is sensitive and trust is the moat.</li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <span class="tag">04 — Market</span>
+    <h2>What already exists</h2>
+    <div class="cols">
+      <div class="card">
+        <h3>Solved — don't rebuild</h3>
+        <ul>
+          <li>Pocket capture: iPhone Action Button + Lock Screen widgets (Whisper Memos, Capture, Reflect)</li>
+          <li>Conversational AI journaling with <em>text</em> weekly reports: Rosebud (category leader, ~$10–13/mo), Reflection.app</li>
+          <li>Lifelong archive with audio + multiple journals: Day One</li>
+          <li>Mood ↔ sleep / exercise correlation: Apple Health + Journal — free and pre-installed</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Unserved — the opening</h3>
+        <ul>
+          <li>A <strong>spoken</strong> weekly debrief with chosen voice and tone — every incumbent ships text</li>
+          <li>Narrative entries tied to wearable trends (“your worst-sleep week lined up with these three entries”)</li>
+          <li>Voice-command routing into multiple notebooks</li>
+          <li>The whole loop in one app instead of four stitched together</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec callout">
+    <span class="tag">05 — Wedge</span>
+    <h2>The weekly spoken debrief is the product</h2>
+    <p>It is both the retention mechanic and the thing no competitor has. Text-to-speech is now cheap and natural (OpenAI, ElevenLabs, Cartesia). Everything around it — fast capture, timeline, reminders — is table stakes we simply execute more cleanly, with honest pricing and local-first data.</p>
+  </section>
+
+  <section class="sec">
+    <span class="tag">06 — Scope</span>
+    <h2>First cut vs. later</h2>
+    <div class="cols">
+      <div>
+        <h3>v1 — prove the loop (~6–8 wks, dogfood daily)</h3>
+        <ul>
+          <li>One-press voice capture + text capture</li>
+          <li>Chronological timeline with search</li>
+          <li>Transcription behind a swappable interface — OS speech-to-text to start, Whisper-class API for quality</li>
+          <li>Daily reminder at a user-set time</li>
+          <li>Weekly spoken AI summary: pick voice + tone; goals in, narration out</li>
+          <li>Local-first storage + full export</li>
+        </ul>
+      </div>
+      <div>
+        <h3>v2 — after it's a habit</h3>
+        <ul>
+          <li>Apple Health / Health Connect correlation + simple charts</li>
+          <li>Multiple notebooks + voice routing</li>
+          <li>Structured goal tracking</li>
+          <li>Shared / team notebooks (evaluate)</li>
+        </ul>
+        <h3 style="margin-top:14px">Not now</h3>
+        <ul>
+          <li>Social feed, coach/therapist marketplace, desktop app</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <span class="tag">07 — Architecture</span>
+    <h2>Rough shape</h2>
+    <ul>
+      <li><strong>Client:</strong> native or native-shell. iOS Action Button and Android quick-settings capture need more than a PWA allows; a PWA is acceptable only to prototype the loop.</li>
+      <li><strong>Flow:</strong> capture → on-device queue → transcription service → entry store (offline-tolerant).</li>
+      <li><strong>Backend:</strong> lightweight API + Postgres; object storage for audio; standard auth.</li>
+      <li><strong>AI:</strong> transcription API, an LLM for weekly synthesis, a TTS API for the debrief audio.</li>
+      <li><strong>Health:</strong> HealthKit / Health Connect read on device, opt-in per source.</li>
+      <li><strong>Privacy:</strong> encrypted at rest; one-tap export and delete; a plain-language data-use statement.</li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <span class="tag">08 — Monetization</span>
+    <h2>Revenue model</h2>
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr><th>Model</th><th>Fit</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Freemium subscription</strong> — recommended</td>
+            <td>Strong</td>
+            <td>Free: capture + timeline. Paid ≈ $6–9/mo or ≈ $50/yr: weekly spoken debrief, health correlation, multi-notebook.</td>
+          </tr>
+          <tr>
+            <td>Pay-once</td>
+            <td>Poor</td>
+            <td>Every active user carries ongoing transcription / LLM / TTS cost.</td>
+          </tr>
+          <tr>
+            <td>Ads</td>
+            <td>Rejected</td>
+            <td>Sensitive content; destroys the trust the product depends on.</td>
+          </tr>
+          <tr>
+            <td>B2B — coaching / therapy practices</td>
+            <td>Later</td>
+            <td>Possible second channel once the consumer loop is proven.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="sec">
+    <span class="tag">09 — Unit cost</span>
+    <h2>Rough cost per active user / month</h2>
+    <ul class="figs">
+      <li><span>Transcription @ ~$0.006/min — light 3 min/day / heavy 15 min/day</span><span class="n">$0.55 – $2.70</span></li>
+      <li><span>Weekly LLM synthesis (×4)</span><span class="n">$0.10 – $0.40</span></li>
+      <li><span>TTS debrief, ~3–5 min audio/week</span><span class="n">$0.30 – $1.20</span></li>
+      <li><span>Infra + storage</span><span class="n">&lt; $0.20</span></li>
+      <li><span><strong>Blended</strong></span><span class="n"><strong>$1 – $5</strong></span></li>
+    </ul>
+    <p>Price has to clear that with margin. Cap free-tier transcription minutes; the debrief stays paid-only.</p>
+  </section>
+
+  <section class="sec">
+    <span class="tag">10 — Risks &amp; decisions</span>
+    <h2>What could sink it, what to decide</h2>
+    <div class="risk"><span class="chip hard">Hard</span><strong>Retention.</strong><p>Journaling apps churn brutally. The spoken debrief is the main defense — validate that it actually pulls you back.</p></div>
+    <div class="risk"><span class="chip hard">Hard</span><strong>iOS capture limits.</strong><p>Third-party apps can't own the system button or background mic like Apple can. Lean on Action Button → Shortcut, Lock Screen widget, or share sheet. Android is more permissive.</p></div>
+    <div class="risk"><span class="chip warn">Caution</span><strong>Funded incumbents + free Apple Journal.</strong><p>Don't out-market them. Win on focus and the one hook they lack.</p></div>
+    <div class="risk"><span class="chip warn">Caution</span><strong>Trust &amp; data.</strong><p>Mental-health-adjacent content. Local-first, clear deletion, no ads — non-negotiable.</p></div>
+    <p style="margin-top:16px"><strong>Open decisions:</strong> PWA prototype first or commit to native now? · iOS-first (users pay more) or Android-first (capture UX is easier)? · Does the name “Diane” hold up?</p>
+    <p><strong>Next step:</strong> pick the platform, build the v1 capture → timeline → weekly-debrief loop, and use it personally for a month before touching v2 or payments.</p>
+  </section>
+
+</article>

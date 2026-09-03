@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f1115" />
+  <title>Diane</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!--
+    Diane — voice-first journaling PWA.
+    v1 loop: capture (voice or text) -> timeline -> weekly spoken debrief.
+    Two views: Journal (capture + timeline) and Week (goals + spoken debrief).
+    See docs/roadmap.md.
+  -->
+
+  <header class="app-header">
+    <h1>Diane</h1>
+    <span class="tagline">a journal you talk to</span>
+  </header>
+
+  <nav class="nav">
+    <button id="nav-journal" class="nav-btn is-active">Journal</button>
+    <button id="nav-week" class="nav-btn">Week</button>
+  </nav>
+
+  <!-- ================= JOURNAL VIEW ================= -->
+  <main id="view-journal">
+    <!-- CAPTURE -------------------------------------------------------- -->
+    <section id="capture" class="capture" aria-label="New entry">
+      <div class="capture-mode" role="tablist">
+        <button id="mode-voice" class="mode-btn is-active" role="tab" aria-selected="true">Voice</button>
+        <button id="mode-text"  class="mode-btn"           role="tab" aria-selected="false">Text</button>
+      </div>
+
+      <!-- Voice: press and hold, or tap to toggle -->
+      <div id="voice-pane" class="pane">
+        <button id="hold-btn" class="hold-btn">
+          <span class="hold-btn__label">Hold or tap to record</span>
+        </button>
+        <p id="live-transcript" class="live-transcript" aria-live="polite"></p>
+      </div>
+
+      <!-- Text: type instead -->
+      <div id="text-pane" class="pane" hidden>
+        <textarea id="text-input" rows="4" placeholder="What's on your mind?"></textarea>
+        <button id="text-save" class="primary-btn">Save entry</button>
+        <p id="text-hint" class="capture-hint"></p>
+      </div>
+    </section>
+
+    <!-- TIMELINE ---------------------------------------------------- -->
+    <section id="timeline" class="timeline" aria-label="Timeline">
+      <input id="search" class="search" type="search" placeholder="Search entries" />
+      <div id="entries"></div>
+      <p id="empty-state" class="empty-state">No entries yet. Hold the button and say something.</p>
+    </section>
+  </main>
+
+  <!-- ================= WEEK VIEW ================= -->
+  <main id="view-week" hidden>
+    <!-- GOALS ------------------------------------------------------- -->
+    <section class="card" aria-label="This week's goals">
+      <h2 class="card__title">This week's goals</h2>
+      <div class="goal-add">
+        <input id="goal-input" type="text" placeholder="Add a goal for this week" />
+        <button id="goal-add" class="primary-btn">Add</button>
+      </div>
+      <div id="goals-list" class="goals-list"></div>
+    </section>
+
+    <!-- DEBRIEF --------------------------------------------------- -->
+    <section class="card" aria-label="Spoken debrief">
+      <h2 class="card__title">Debrief</h2>
+      <div class="debrief-actions">
+        <button id="debrief-midweek" class="secondary-btn">How's my week so far?</button>
+        <button id="debrief-weekly" class="secondary-btn">Full weekly debrief</button>
+      </div>
+      <p id="debrief-output" class="debrief-output"></p>
+      <div class="debrief-foot">
+        <button id="debrief-play" class="primary-btn" disabled>▶ Play</button>
+        <span id="debrief-status" class="debrief-status" aria-live="polite"></span>
+      </div>
+    </section>
+
+    <!-- SETTINGS ------------------------------------------------ -->
+    <section class="card" aria-label="Settings">
+      <details>
+        <summary class="card__title">Settings</summary>
+
+        <label class="field">
+          <span>Claude API key</span>
+          <input id="set-apikey" type="password" autocomplete="off" placeholder="sk-ant-…" />
+          <small class="muted">Stored on this device only. Never sent anywhere except Anthropic.</small>
+        </label>
+
+        <label class="field">
+          <span>Model</span>
+          <select id="set-model">
+            <option value="claude-sonnet-5">Claude Sonnet 5 (recommended)</option>
+            <option value="claude-opus-5">Claude Opus 5 (best, pricier)</option>
+            <option value="claude-haiku-4-5">Claude Haiku 4.5 (cheapest)</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Voice</span>
+          <select id="set-voice"><option value="">System default</option></select>
+        </label>
+
+        <label class="field">
+          <span>Speed</span>
+          <input id="set-rate" type="range" min="0.6" max="1.6" step="0.1" value="1" />
+        </label>
+
+        <div class="field">
+          <span>Sample data (dev)</span>
+          <div class="debrief-actions">
+            <button id="set-seed" class="secondary-btn">Load sample month</button>
+            <button id="set-wipe" class="secondary-btn danger">Delete all data</button>
+          </div>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

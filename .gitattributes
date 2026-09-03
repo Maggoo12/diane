@@ -1,0 +1,2 @@
+# Keep line endings consistent in the repo regardless of who clones it.
+* text=auto eol=lf
