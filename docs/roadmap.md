@@ -36,13 +36,15 @@ in Phase 2.
 - [x] **Timeline.** Reverse-chronological list, grouped by day. Per-entry
       delete (× with a confirm prompt).
 - [x] **Search.** Plain substring search across entries (debounced).
-- [~] **Transcription behind an interface.** `js/transcribe.js` seam done. The
-      Web Speech API impl is **abandoned** — it fails with a `network` error on
-      Magnus's devices (can't reach Google's speech servers) and never worked
-      offline. Next: swap the seam to take the recorded audio blob and POST it
-      to a Whisper-class API (Groq free tier, or OpenAI). Keeps the audio
-      archive, works in an installed PWA, better quality. Key stored on-device
-      like the Claude key; offline → queue the blob and retry.
+- [~] **Transcription behind an interface.** `js/transcribe.js` is now
+      `(Blob) => Promise<string>`, POSTing the recorded audio to **Groq's
+      Whisper** endpoint (`whisper-large-v3-turbo`) with the user's own
+      on-device key. Web Speech is abandoned (network errors, no offline).
+      Voice entry saves immediately as "pending", transcribes in the
+      background, fills the text in. A ↻ button on pending entries retries.
+      Verified: request shape, retry flow. **Pending Magnus's Groq key** for a
+      real run. Still to do: automatic retry of pending entries when back
+      online (currently manual via ↻).
 - [ ] **Daily reminder.** Local notification at a user-set time: "add today's
       entries."
 - [x] **Goals input.** `js/goals.js` — add / tick / delete, scoped to the
