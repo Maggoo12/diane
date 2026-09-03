@@ -66,8 +66,18 @@ in Phase 2.
   - [x] Synthetic corpus — `js/seed.js`, ~3 weeks of entries + 3 weeks of
         goals with deliberate threads (unbooked dermatologist, presentation
         arc, patchy running habit). "Load sample month" in Settings.
-  - [ ] End-of-week notification: "your weekly summary is ready."
+  - [ ] **End-of-week notification.** "Your weekly summary is ready."
+        - Default **Sunday evening**, user-settable (day + time).
+        - The notification itself carries quick actions, no app-open needed:
+          **Postpone 1h**, **Postpone 2h**, **Postpone to…** (pick a time),
+          **Skip this week**.
+        - A postpone re-fires later the same week; "Skip this week" suppresses
+          it until next Sunday.
   - [ ] Tone picker (voice done; "warm / dry / just-the-facts" tone not yet).
+  - [ ] **Language.** Capture already handles mixed English/Danish (Whisper
+        auto-detects). The debrief and TTS should follow suit — summarise in
+        the user's dominant language (or a chosen one) and pick a matching
+        voice.
   - [ ] Move the API call behind a serverless proxy before other users.
 - [x] **"How's my week so far?" — on-demand check-in.** Button in the Week
       view; `mode: 'midweek'` swaps in a shorter, nudge-framed prompt. Voice
