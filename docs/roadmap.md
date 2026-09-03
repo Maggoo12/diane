@@ -36,12 +36,25 @@ in Phase 2.
 - [x] **Timeline.** Reverse-chronological list, grouped by day. Per-entry
       delete (× with a confirm prompt).
 - [x] **Search.** Plain substring search across entries (debounced).
-- [~] **Transcription behind an interface.** `js/transcribe.js` seam done (Web
-      Speech API). Whisper-class swap-in still to come.
+- [~] **Transcription behind an interface.** `js/transcribe.js` seam done. The
+      Web Speech API impl is **abandoned** — it fails with a `network` error on
+      Magnus's devices (can't reach Google's speech servers) and never worked
+      offline. Next: swap the seam to take the recorded audio blob and POST it
+      to a Whisper-class API (Groq free tier, or OpenAI). Keeps the audio
+      archive, works in an installed PWA, better quality. Key stored on-device
+      like the Claude key; offline → queue the blob and retry.
 - [ ] **Daily reminder.** Local notification at a user-set time: "add today's
       entries."
 - [x] **Goals input.** `js/goals.js` — add / tick / delete, scoped to the
-      current week (`db.weekOf`). Lives in the Week view.
+      current week (`db.weekOf`). Lives in the Week view. Past weeks' goals are
+      kept (keyed by week) and the debrief uses them, but there's no history UI.
+  - [ ] **Past-weeks view.** See earlier weeks' goals and how they went — a
+        collapsible list or a week picker in the Week view.
+  - [ ] **AI-suggested goals.** At the start of a week, Diane reads recent
+        entries and proposes candidate goals ("you've mentioned the
+        dermatologist three times — make it a goal?"). User accepts / edits /
+        rejects each; never created silently. Same LLM pipe as the debrief.
+        Manual entry stays the base.
 - [~] **Weekly spoken debrief.** Pipeline built end to end:
   - [x] LLM synthesis — `js/debrief.js`, calls Claude (Sonnet 5 default) with
         the user's own API key stored on-device; plain non-AI fallback when no
