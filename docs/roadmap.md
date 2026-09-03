@@ -45,8 +45,11 @@ in Phase 2.
       Verified: request shape, retry flow. **Pending Magnus's Groq key** for a
       real run. Still to do: automatic retry of pending entries when back
       online (currently manual via ↻).
-- [ ] **Daily reminder.** Local notification at a user-set time: "add today's
-      entries."
+- [~] **Daily reminder.** `js/reminders.js` — local notification at a
+      user-set time, only on days with no entry yet. Off by default; enable +
+      set time in Settings. Scheduling is best-effort (Notification Triggers
+      API where available, catch-up-on-open otherwise). **Needs a device test**
+      to confirm it fires.
 - [x] **Goals input.** `js/goals.js` — add / tick / delete, scoped to the
       current week (`db.weekOf`). Lives in the Week view. Past weeks' goals are
       kept (keyed by week) and the debrief uses them, but there's no history UI.
@@ -66,13 +69,15 @@ in Phase 2.
   - [x] Synthetic corpus — `js/seed.js`, ~3 weeks of entries + 3 weeks of
         goals with deliberate threads (unbooked dermatologist, presentation
         arc, patchy running habit). "Load sample month" in Settings.
-  - [ ] **End-of-week notification.** "Your weekly summary is ready."
-        - Default **Sunday evening**, user-settable (day + time).
-        - The notification itself carries quick actions, no app-open needed:
-          **Postpone 1h**, **Postpone 2h**, **Postpone to…** (pick a time),
-          **Skip this week**.
-        - A postpone re-fires later the same week; "Skip this week" suppresses
-          it until next Sunday.
+  - [~] **End-of-week notification.** `js/reminders.js` — "your weekly debrief
+        is ready", default **Sunday 19:00**, user-settable (day + time).
+        Notification actions: **Snooze 1h** and **Skip this week** (Android
+        shows ~2); a body tap opens the app to the Week view. Snooze/skip are
+        handled in `sw.js` via the `meta` store.
+        - Still to do: **Postpone 2h / Postpone to a chosen time** (needs an
+          in-app postpone panel — the notification can't hold that many
+          buttons).
+        - Needs a device test to confirm scheduling fires.
   - [ ] Tone picker (voice done; "warm / dry / just-the-facts" tone not yet).
   - [ ] **Language.** Capture already handles mixed English/Danish (Whisper
         auto-detects). The debrief and TTS should follow suit — summarise in
@@ -82,19 +87,15 @@ in Phase 2.
 - [x] **"How's my week so far?" — on-demand check-in.** Button in the Week
       view; `mode: 'midweek'` swaps in a shorter, nudge-framed prompt. Voice
       command ("hey Diane, how's my week?") still later.
-- [ ] **Backup / import / export.** Because it's local-first, an uninstall,
-      cleared browser data, or a new phone wipes everything — a backup path is
-      not optional.
-  - [ ] **Export** the whole journal (entries + goals + audio) to one file in
-        an open format — JSON manifest plus the audio blobs (a `.zip`, or a
-        single JSON with base64 audio for simplicity first).
-  - [ ] **Import** that file back on a fresh install: merge or replace, with a
-        confirm step before it touches existing data.
-  - [ ] Both show a **progress bar** (audio blobs make this slow enough to
-        need one) and a clear **"done" confirmation** with a count of what
-        moved.
+- [x] **Backup / import / export.** `js/backup.js` — export the whole journal
+      (entries + goals + audio as base64) to one `diane-backup-YYYY-MM-DD.json`;
+      import replaces the local DB after a confirm. Progress bar + a count
+      confirmation on both. Round-trip verified (audio byte-for-byte).
+  - [ ] **Merge** import mode (currently replace-only).
   - [ ] Later: optional auto-backup to a user-chosen destination (their own
         cloud drive / file share) on a schedule — never a Diane-run server.
+  - [ ] Note: `<a download>` works in a browser tab; confirm it also works
+        from the installed PWA on Android (Web Share as fallback if not).
 - [ ] **Privacy basics.** Encrypted at rest; one-tap delete-all. Fuller
       provider/data story in **Privacy & AI providers** below.
 
