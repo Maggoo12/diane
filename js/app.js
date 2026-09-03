@@ -30,10 +30,25 @@ function setView(name) {
   if (name === 'week') refreshWeek();
 }
 
+function initSettingsToggle() {
+  const panel = document.getElementById('settings-panel');
+  const backdrop = document.getElementById('settings-backdrop');
+  const open = () => { panel.hidden = false; backdrop.hidden = false; };
+  const close = () => { panel.hidden = true; backdrop.hidden = true; };
+
+  document.getElementById('settings-open').addEventListener('click', open);
+  document.getElementById('settings-close').addEventListener('click', close);
+  backdrop.addEventListener('click', close);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !panel.hidden) close();
+  });
+}
+
 async function main() {
   initCapture(renderTimeline);
   await renderTimeline();
   initWeek(() => renderTimeline());
+  initSettingsToggle();
 
   document.getElementById('nav-journal').addEventListener('click', () => setView('journal'));
   document.getElementById('nav-week').addEventListener('click', () => setView('week'));

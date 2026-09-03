@@ -99,7 +99,7 @@ function wireSettings(onDataChange) {
   const rateEl = document.getElementById('set-rate');
   const seedBtn = document.getElementById('set-seed');
   const wipeBtn = document.getElementById('set-wipe');
-  const status = document.getElementById('debrief-status');
+  const status = document.getElementById('settings-status');
 
   apiKeyEl.value = getApiKey();
   apiKeyEl.addEventListener('change', () => setApiKey(apiKeyEl.value));

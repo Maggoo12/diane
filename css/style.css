@@ -33,12 +33,61 @@ body {
 /* Header ------------------------------------------------------------------ */
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: var(--gap);
 }
+.app-header__title { display: flex; align-items: baseline; gap: 10px; }
 .app-header h1 { font-size: 1.4rem; margin: 0; letter-spacing: 0.5px; }
 .tagline { color: var(--text-dim); font-size: 0.85rem; }
+
+.icon-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 0;
+  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.icon-btn:hover { background: var(--surface-2); }
+
+/* Settings overlay ----------------------------------------------------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 20;
+}
+.settings-panel {
+  position: fixed;
+  z-index: 21;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(420px, 100%);
+  background: var(--bg);
+  border-left: 1px solid #2b303b;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.4);
+}
+.settings-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top) + 14px) 16px 12px;
+  border-bottom: 1px solid #2b303b;
+}
+.settings-panel__head .card__title { margin: 0; }
+.settings-panel__body {
+  padding: var(--gap);
+  overflow-y: auto;
+  flex: 1;
+}
 
 /* Nav ------------------------------------------------------------------- */
 .nav { display: flex; gap: 8px; margin-bottom: 20px; }

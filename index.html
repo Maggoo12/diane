@@ -18,8 +18,11 @@
   -->
 
   <header class="app-header">
-    <h1>Diane</h1>
-    <span class="tagline">a journal you talk to</span>
+    <div class="app-header__title">
+      <h1>Diane</h1>
+      <span class="tagline">a journal you talk to</span>
+    </div>
+    <button id="settings-open" class="icon-btn" aria-label="Settings">⚙</button>
   </header>
 
   <nav class="nav">
@@ -85,62 +88,66 @@
         <span id="debrief-status" class="debrief-status" aria-live="polite"></span>
       </div>
     </section>
-
-    <!-- SETTINGS ------------------------------------------------ -->
-    <section class="card" aria-label="Settings">
-      <details>
-        <summary class="card__title">Settings</summary>
-
-        <label class="field">
-          <span>Claude API key — for the debrief</span>
-          <input id="set-apikey" type="password" autocomplete="off" placeholder="sk-ant-…" />
-          <small class="muted">Stored on this device only. Never sent anywhere except Anthropic.</small>
-        </label>
-
-        <label class="field">
-          <span>Debrief model</span>
-          <select id="set-model">
-            <option value="claude-sonnet-5">Claude Sonnet 5 (recommended)</option>
-            <option value="claude-opus-5">Claude Opus 5 (best, pricier)</option>
-            <option value="claude-haiku-4-5">Claude Haiku 4.5 (cheapest)</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Groq API key — for voice transcription</span>
-          <input id="set-groqkey" type="password" autocomplete="off" placeholder="gsk_…" />
-          <small class="muted">Free at console.groq.com. Stored on this device only. Voice recordings are sent to Groq to transcribe.</small>
-        </label>
-
-        <label class="field">
-          <span>Transcription model</span>
-          <select id="set-transcribe-model">
-            <option value="whisper-large-v3-turbo">Whisper large v3 turbo (fast, recommended)</option>
-            <option value="whisper-large-v3">Whisper large v3 (most accurate)</option>
-            <option value="distil-whisper-large-v3-en">Distil Whisper (fastest, English only)</option>
-          </select>
-        </label>
-
-        <label class="field">
-          <span>Voice</span>
-          <select id="set-voice"><option value="">System default</option></select>
-        </label>
-
-        <label class="field">
-          <span>Speed</span>
-          <input id="set-rate" type="range" min="0.6" max="1.6" step="0.1" value="1" />
-        </label>
-
-        <div class="field">
-          <span>Sample data (dev)</span>
-          <div class="debrief-actions">
-            <button id="set-seed" class="secondary-btn">Load sample month</button>
-            <button id="set-wipe" class="secondary-btn danger">Delete all data</button>
-          </div>
-        </div>
-      </details>
-    </section>
   </main>
+
+  <!-- ================= SETTINGS (overlay) ================= -->
+  <div id="settings-backdrop" class="modal-backdrop" hidden></div>
+  <aside id="settings-panel" class="settings-panel" aria-label="Settings" hidden>
+    <div class="settings-panel__head">
+      <h2 class="card__title">Settings</h2>
+      <button id="settings-close" class="icon-btn" aria-label="Close settings">✕</button>
+    </div>
+    <div class="settings-panel__body">
+      <label class="field">
+        <span>Claude API key — for the debrief</span>
+        <input id="set-apikey" type="password" autocomplete="off" placeholder="sk-ant-…" />
+        <small class="muted">Stored on this device only. Never sent anywhere except Anthropic.</small>
+      </label>
+
+      <label class="field">
+        <span>Debrief model</span>
+        <select id="set-model">
+          <option value="claude-sonnet-5">Claude Sonnet 5 (recommended)</option>
+          <option value="claude-opus-5">Claude Opus 5 (best, pricier)</option>
+          <option value="claude-haiku-4-5">Claude Haiku 4.5 (cheapest)</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Groq API key — for voice transcription</span>
+        <input id="set-groqkey" type="password" autocomplete="off" placeholder="gsk_…" />
+        <small class="muted">Free at console.groq.com. Stored on this device only. Voice recordings are sent to Groq to transcribe.</small>
+      </label>
+
+      <label class="field">
+        <span>Transcription model</span>
+        <select id="set-transcribe-model">
+          <option value="whisper-large-v3-turbo">Whisper large v3 turbo (fast, recommended)</option>
+          <option value="whisper-large-v3">Whisper large v3 (most accurate)</option>
+          <option value="distil-whisper-large-v3-en">Distil Whisper (fastest, English only)</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Voice</span>
+        <select id="set-voice"><option value="">System default</option></select>
+      </label>
+
+      <label class="field">
+        <span>Speed</span>
+        <input id="set-rate" type="range" min="0.6" max="1.6" step="0.1" value="1" />
+      </label>
+
+      <div class="field">
+        <span>Sample data (dev)</span>
+        <div class="debrief-actions">
+          <button id="set-seed" class="secondary-btn">Load sample month</button>
+          <button id="set-wipe" class="secondary-btn danger">Delete all data</button>
+        </div>
+        <small id="settings-status" class="muted" aria-live="polite"></small>
+      </div>
+    </div>
+  </aside>
 
   <script type="module" src="js/app.js"></script>
 </body>
