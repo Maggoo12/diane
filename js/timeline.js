@@ -3,7 +3,8 @@
  * Also owns the search box (plain substring match, see db.searchEntries).
  */
 
-import { searchEntries, getAudio, deleteEntry } from './db.js';
+import { searchEntries, getAudio, deleteEntry, setEntryTranscript } from './db.js';
+import { transcribe, isTranscriptionConfigured } from './transcribe.js';
 
 const entriesEl = document.getElementById('entries');
 const emptyEl = document.getElementById('empty-state');
@@ -66,6 +67,36 @@ function renderEntry(entry) {
     <span class="entry__badge">${entry.source}</span>
     ${entry.transcriptStatus === 'pending' ? '<span class="entry__badge">transcript pending</span>' : ''}
   `;
+
+  // Retry transcription for a pending voice entry (e.g. captured offline).
+  if (entry.transcriptStatus === 'pending' && entry.audioId && isTranscriptionConfigured()) {
+    const retry = document.createElement('button');
+    retry.type = 'button';
+    retry.className = 'entry__retry';
+    retry.textContent = '↻';
+    retry.setAttribute('aria-label', 'Transcribe this entry');
+    retry.addEventListener('click', async () => {
+      retry.disabled = true;
+      retry.textContent = '…';
+      try {
+        const blob = await getAudio(entry.audioId);
+        const text = await transcribe(blob);
+        if (text) {
+          await setEntryTranscript(entry.id, text);
+          renderTimeline();
+        } else {
+          retry.disabled = false;
+          retry.textContent = '↻';
+        }
+      } catch (err) {
+        console.warn('[timeline] retry transcription failed:', err);
+        retry.textContent = '↻';
+        retry.disabled = false;
+        retry.title = err.message || 'Transcription failed';
+      }
+    });
+    meta.appendChild(retry);
+  }
 
   // Delete control — pushed to the right by margin-left:auto in the CSS.
   const del = document.createElement('button');

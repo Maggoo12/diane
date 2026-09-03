@@ -13,6 +13,10 @@ import {
   speak, stop, isSpeaking, isSpeechSupported,
   onVoicesReady, getVoiceURI, setVoiceURI, getRate, setRate,
 } from './speak.js';
+import {
+  getGroqKey, setGroqKey,
+  getTranscribeModel, setTranscribeModel,
+} from './transcribe.js';
 import { seedDatabase } from './seed.js';
 import { clearAll } from './db.js';
 
@@ -89,6 +93,8 @@ function wireDebrief() {
 function wireSettings(onDataChange) {
   const apiKeyEl = document.getElementById('set-apikey');
   const modelEl = document.getElementById('set-model');
+  const groqKeyEl = document.getElementById('set-groqkey');
+  const transcribeModelEl = document.getElementById('set-transcribe-model');
   const voiceEl = document.getElementById('set-voice');
   const rateEl = document.getElementById('set-rate');
   const seedBtn = document.getElementById('set-seed');
@@ -100,6 +106,12 @@ function wireSettings(onDataChange) {
 
   modelEl.value = getModel();
   modelEl.addEventListener('change', () => setModel(modelEl.value));
+
+  groqKeyEl.value = getGroqKey();
+  groqKeyEl.addEventListener('change', () => setGroqKey(groqKeyEl.value));
+
+  transcribeModelEl.value = getTranscribeModel();
+  transcribeModelEl.addEventListener('change', () => setTranscribeModel(transcribeModelEl.value));
 
   if (isSpeechSupported()) {
     onVoicesReady((voices) => {

@@ -252,17 +252,20 @@ textarea, .search {
 .entry__text { white-space: pre-wrap; margin: 0; }
 .entry__audio { margin-top: 8px; width: 100%; }
 
-.entry__delete {
-  margin-left: auto;         /* shove it to the far right of the meta row */
+.entry__delete,
+.entry__retry {
   background: transparent;
   border: 0;
   color: var(--text-dim);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1;
   padding: 0 6px;
   border-radius: 6px;
   cursor: pointer;
 }
+.entry__delete { margin-left: auto; }   /* shove delete to the far right */
+.entry__retry:hover { color: var(--accent); background: var(--surface-2); }
+.entry__retry[disabled] { opacity: 0.6; cursor: default; }
 .entry__delete:hover { color: var(--danger); background: var(--surface-2); }
 
 .empty-state { color: var(--text-dim); text-align: center; padding: 24px 0; }

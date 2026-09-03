@@ -7,15 +7,18 @@
  * A release within HOLD_MS of the press is treated as a "click" and recording
  * continues until the next click; a longer press stops on release.
  *
- * On start: MediaRecorder archives the audio + the live transcriber runs.
- * On stop:  both end, then one entry is saved via db.addEntry().
+ * On start: MediaRecorder archives the audio.
+ * On stop:  the entry is saved immediately (audio + "transcript pending"),
+ *           then the blob is sent to transcribe() in the background and the
+ *           entry's text is filled in when it returns. A slow or failed
+ *           transcription never blocks or loses the capture.
  *
  * Design targets from the brief: recording within ~1s of the press, a haptic
  * buzz on save, and it must still save something if transcription fails.
  */
 
-import { addEntry } from './db.js';
-import { createTranscriber, isLiveTranscriptionSupported } from './transcribe.js';
+import { addEntry, setEntryTranscript } from './db.js';
+import { transcribe, isTranscriptionConfigured } from './transcribe.js';
 
 /**
  * Wire up the voice + text capture UI.
@@ -90,17 +93,12 @@ export function initCapture(onSaved) {
 
   let mediaRecorder = null;
   let chunks = [];
-  let transcriber = null;
-  let liveText = '';
   let stream = null;
   let pressStartedAt = 0;
   let pointerDown = false; // is the finger still on the button right now
   let busy = false; // true while start/stop is mid-flight, to ignore extra presses
 
   labelEl.textContent = IDLE_LABEL;
-  if (!isLiveTranscriptionSupported()) {
-    liveEl.textContent = 'Live transcription unavailable here — audio still saves.';
-  }
 
   async function startRecording() {
     if (mediaRecorder || busy) return;
@@ -116,7 +114,6 @@ export function initCapture(onSaved) {
     }
 
     chunks = [];
-    liveText = '';
     liveEl.textContent = '';
 
     mediaRecorder = new MediaRecorder(stream);
@@ -124,17 +121,6 @@ export function initCapture(onSaved) {
       if (e.data.size > 0) chunks.push(e.data);
     };
     mediaRecorder.start();
-
-    transcriber = createTranscriber({
-      onPartial: (t) => {
-        liveText = t;
-        liveEl.textContent = t;
-      },
-      onFinal: (t) => {
-        if (t) liveText = t;
-      },
-    });
-    transcriber.start();
 
     holdBtn.classList.add('is-recording');
     // If the finger is still down we're in a hold; if it already lifted (a
@@ -152,27 +138,39 @@ export function initCapture(onSaved) {
       mediaRecorder.onstop = resolve;
     });
     mediaRecorder.stop();
-    transcriber?.stop();
     await stopped;
 
     stream.getTracks().forEach((t) => t.stop());
-
     const audioBlob = new Blob(chunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-    const text = liveText.trim();
 
-    await addEntry({ text, source: 'voice', audioBlob });
+    // Save immediately so a slow or failed transcription can't lose the capture.
+    const entry = await addEntry({ text: '', source: 'voice', audioBlob });
     buzz();
 
-    // reset
     mediaRecorder = null;
-    transcriber = null;
     stream = null;
     holdBtn.classList.remove('is-recording');
     labelEl.textContent = IDLE_LABEL;
-    liveEl.textContent = text ? '' : 'Saved (no transcript yet).';
     busy = false;
-
     onSaved?.();
+
+    // Then transcribe in the background and fill the text in when it lands.
+    if (!isTranscriptionConfigured()) {
+      liveEl.textContent = 'Saved. Add a Groq key in Settings to transcribe voice notes.';
+      return;
+    }
+    liveEl.textContent = 'Transcribing…';
+    try {
+      const text = await transcribe(audioBlob);
+      if (text) {
+        await setEntryTranscript(entry.id, text);
+        onSaved?.();
+      }
+      liveEl.textContent = '';
+    } catch (err) {
+      console.warn('[capture] transcription failed:', err);
+      liveEl.textContent = err.message || 'Transcription failed — audio saved, tap ↻ on the entry to retry.';
+    }
   }
 
   // Pointer events cover mouse + touch + pen with one code path.

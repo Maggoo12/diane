@@ -92,17 +92,32 @@
         <summary class="card__title">Settings</summary>
 
         <label class="field">
-          <span>Claude API key</span>
+          <span>Claude API key — for the debrief</span>
           <input id="set-apikey" type="password" autocomplete="off" placeholder="sk-ant-…" />
           <small class="muted">Stored on this device only. Never sent anywhere except Anthropic.</small>
         </label>
 
         <label class="field">
-          <span>Model</span>
+          <span>Debrief model</span>
           <select id="set-model">
             <option value="claude-sonnet-5">Claude Sonnet 5 (recommended)</option>
             <option value="claude-opus-5">Claude Opus 5 (best, pricier)</option>
             <option value="claude-haiku-4-5">Claude Haiku 4.5 (cheapest)</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Groq API key — for voice transcription</span>
+          <input id="set-groqkey" type="password" autocomplete="off" placeholder="gsk_…" />
+          <small class="muted">Free at console.groq.com. Stored on this device only. Voice recordings are sent to Groq to transcribe.</small>
+        </label>
+
+        <label class="field">
+          <span>Transcription model</span>
+          <select id="set-transcribe-model">
+            <option value="whisper-large-v3-turbo">Whisper large v3 turbo (fast, recommended)</option>
+            <option value="whisper-large-v3">Whisper large v3 (most accurate)</option>
+            <option value="distil-whisper-large-v3-en">Distil Whisper (fastest, English only)</option>
           </select>
         </label>
 

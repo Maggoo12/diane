@@ -124,6 +124,23 @@ export async function importEntry({ text, source = 'text', createdAt }) {
   return entry;
 }
 
+/**
+ * Fill in (or replace) an entry's transcript and mark it done.
+ * Used after a voice entry's audio comes back from the transcription API.
+ */
+export async function setEntryTranscript(id, text) {
+  const db = await openDB();
+  const tx = db.transaction('entries', 'readwrite');
+  const store = tx.objectStore('entries');
+  const entry = await promisify(store.get(id));
+  if (entry) {
+    entry.text = (text || '').trim();
+    entry.transcriptStatus = 'done';
+    store.put(entry);
+  }
+  await txDone(tx);
+}
+
 /** All entries, newest first. */
 export async function getAllEntries() {
   const db = await openDB();

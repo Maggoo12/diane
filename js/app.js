@@ -4,7 +4,7 @@
  *
  * Module map:
  *   db.js         local-first storage (IndexedDB): entries, audio, goals
- *   transcribe.js swappable speech-to-text seam
+ *   transcribe.js swappable audio-blob -> text seam (Groq Whisper)
  *   capture.js    press-and-hold / tap voice + text capture
  *   timeline.js   grouped, searchable list of entries
  *   goals.js      the week's goals

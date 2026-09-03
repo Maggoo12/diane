@@ -1,84 +1,95 @@
 /*
- * transcribe.js — the swappable transcription layer.
+ * transcribe.js — the swappable "ears" seam: an audio blob in, text out.
  *
- * The roadmap calls for ONE seam the rest of the app talks to, so the engine
- * can change later (OS speech-to-text now -> a Whisper-class API for quality).
+ * v1 engine: Groq's Whisper endpoint (OpenAI-compatible). It's a single HTTPS
+ * POST with the recorded file — reliable in an installed PWA, works on any
+ * network that can reach Groq, and Groq's free tier covers personal use.
  *
- * v1 engine: the browser's Web Speech API (SpeechRecognition). It listens to
- * the live mic and streams back text. It does NOT work on a recorded file and
- * needs a network connection on most Android builds — so capture.js always
- * records the audio too, and an entry can be saved with transcriptStatus
- * 'pending' when recognition is unavailable.
+ * The earlier engine (browser SpeechRecognition) was abandoned: it streams to
+ * Google's servers and failed with a `network` error on the dev devices, and
+ * never worked offline.
  *
- * To swap engines later, write another module that exposes the same
- * createTranscriber() shape and point capture.js at it.
+ * To swap engines later (OpenAI, a self-hosted Whisper, a managed backend),
+ * replace transcribe() with something of the same shape: (Blob) => Promise<string>.
  */
 
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition || null;
+const GROQ_URL = 'https://api.groq.com/openai/v1/audio/transcriptions';
+const DEFAULT_MODEL = 'whisper-large-v3-turbo';
 
-export function isLiveTranscriptionSupported() {
-  return SpeechRecognition !== null;
+const KEY_GROQ = 'diane.groqKey';
+const KEY_MODEL = 'diane.transcribeModel';
+
+// --- settings (on-device) --------------------------------------------
+export function getGroqKey() {
+  return localStorage.getItem(KEY_GROQ) || '';
+}
+export function setGroqKey(value) {
+  const v = (value || '').trim();
+  if (v) localStorage.setItem(KEY_GROQ, v);
+  else localStorage.removeItem(KEY_GROQ);
+}
+export function getTranscribeModel() {
+  return localStorage.getItem(KEY_MODEL) || DEFAULT_MODEL;
+}
+export function setTranscribeModel(value) {
+  localStorage.setItem(KEY_MODEL, value || DEFAULT_MODEL);
 }
 
-/**
- * Create a live transcriber tied to one recording session.
- *
- * @param {object} handlers
- * @param {(partialText: string) => void} [handlers.onPartial] fired as words arrive
- * @param {(finalText: string) => void}   [handlers.onFinal]   fired once on stop
- * @returns {{ start: () => void, stop: () => void }}
- */
-export function createTranscriber({ onPartial, onFinal } = {}) {
-  let finalText = '';
+/** True once a Groq key is set — voice entries only transcribe when this is. */
+export function isTranscriptionConfigured() {
+  return getGroqKey().length > 0;
+}
 
-  if (!SpeechRecognition) {
-    // Graceful no-op: capture.js still records audio and saves a pending entry.
-    return {
-      start() {},
-      stop() {
-        onFinal?.('');
-      },
-    };
+// --- the engine --------------------------------------------------
+/**
+ * Transcribe one recorded audio blob.
+ * @param {Blob} blob  audio from MediaRecorder (webm/opus, mp4, …)
+ * @returns {Promise<string>} the transcript; '' when no key is configured
+ * @throws on a network or API error (caller keeps the entry as 'pending')
+ */
+export async function transcribe(blob) {
+  const key = getGroqKey();
+  if (!key) return '';
+
+  const form = new FormData();
+  form.append('file', blob, `recording.${extFromMime(blob.type)}`);
+  form.append('model', getTranscribeModel());
+  form.append('response_format', 'json');
+  form.append('temperature', '0');
+
+  let res;
+  try {
+    res = await fetch(GROQ_URL, {
+      method: 'POST',
+      // Don't set Content-Type — the browser adds the multipart boundary.
+      headers: { Authorization: `Bearer ${key}` },
+      body: form,
+    });
+  } catch (err) {
+    throw new Error(`Couldn't reach Groq (${err.message}). Check your connection.`);
   }
 
-  const recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = navigator.language || 'en-US';
-
-  recognition.onresult = (event) => {
-    let interim = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const chunk = event.results[i][0].transcript;
-      if (event.results[i].isFinal) finalText += chunk + ' ';
-      else interim += chunk;
+  if (!res.ok) {
+    let detail = '';
+    try {
+      const body = await res.json();
+      detail = body?.error?.message || JSON.stringify(body);
+    } catch {
+      detail = await res.text().catch(() => '');
     }
-    onPartial?.((finalText + interim).trim());
-  };
+    if (res.status === 401) throw new Error('Groq rejected the API key (401). Check it in Settings.');
+    if (res.status === 429) throw new Error('Groq rate limit or quota hit (429). Try again shortly.');
+    throw new Error(`Groq transcription error ${res.status}: ${String(detail).slice(0, 300)}`);
+  }
 
-  recognition.onerror = (event) => {
-    // 'no-speech', 'network', 'not-allowed' — non-fatal here. Log and move on;
-    // stop() will still deliver whatever finalText we gathered.
-    console.warn('[transcribe] recognition error:', event.error);
-  };
+  const json = await res.json();
+  return (json.text || '').trim();
+}
 
-  return {
-    start() {
-      finalText = '';
-      try {
-        recognition.start();
-      } catch (err) {
-        console.warn('[transcribe] start failed:', err);
-      }
-    },
-    stop() {
-      try {
-        recognition.stop();
-      } catch {
-        /* already stopped */
-      }
-      onFinal?.(finalText.trim());
-    },
-  };
+function extFromMime(mime = '') {
+  if (mime.includes('mp4') || mime.includes('m4a')) return 'm4a';
+  if (mime.includes('ogg')) return 'ogg';
+  if (mime.includes('wav')) return 'wav';
+  if (mime.includes('mpeg') || mime.includes('mp3')) return 'mp3';
+  return 'webm';
 }
