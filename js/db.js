@@ -300,6 +300,12 @@ export async function setMeta(k, v) {
   tx.objectStore('meta').put({ k, v });
   await txDone(tx);
 }
+export async function deleteMeta(k) {
+  const db = await openDB();
+  const tx = db.transaction('meta', 'readwrite');
+  tx.objectStore('meta').delete(k);
+  await txDone(tx);
+}
 
 // --- backup restore -----------------------------------------------
 /**

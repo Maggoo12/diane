@@ -25,7 +25,9 @@ import {
   getReminderSettings, setReminderSettings,
   notificationsSupported, notificationPermission, requestNotificationPermission,
   scheduleReminders, sendTestNotification, explainReminders, fireReminderNow,
+  resetReminderState,
 } from './reminders.js';
+import { previewBar, render as renderReminderBar } from './reminderbar.js';
 
 /** @param {() => void} onDataChange fired after seeding/wiping, to refresh other views */
 export function initWeek(onDataChange) {
@@ -118,6 +120,7 @@ function wireSettingsPanel(onDataChange) {
     remWeeklyDay: $('rem-weekly-day'), remWeeklyTime: $('rem-weekly-time'),
     remStatus: $('rem-status'), remTest: $('rem-test'),
     remFire: $('rem-fire'), remDiag: $('rem-diag'), remDiagOut: $('rem-diag-out'),
+    remPreview: $('rem-preview'), remReset: $('rem-reset'),
     save: $('settings-save'), dirtyLbl: $('settings-dirty'),
     seed: $('set-seed'), wipe: $('set-wipe'), devStatus: $('settings-status'),
   };
@@ -230,6 +233,19 @@ function wireSettingsPanel(onDataChange) {
     } catch (err) {
       el.remDiagOut.textContent = err.message || String(err);
     }
+  });
+
+  el.remPreview.addEventListener('click', () => {
+    previewBar();
+    // Close the panel so the bar (in the main view) is visible.
+    document.getElementById('settings-panel').hidden = true;
+    document.getElementById('settings-backdrop').hidden = true;
+  });
+
+  el.remReset.addEventListener('click', async () => {
+    await resetReminderState();
+    await renderReminderBar();
+    el.remStatus.textContent = 'Reminder state cleared. Due reminders will show again.';
   });
 
   el.save.addEventListener('click', () => {

@@ -15,7 +15,17 @@
  * flags into the "meta" store that this module reads.
  */
 
-import { getMeta, setMeta, getAllEntries } from './db.js';
+import { getMeta, setMeta, deleteMeta, getAllEntries } from './db.js';
+
+const STATE_KEYS = [
+  'rem.lastDaily', 'rem.lastWeekly', 'rem.weeklySkip',
+  'rem.dailySnoozeUntil', 'rem.weeklySnoozeUntil',
+];
+
+/** Clear "already fired / snoozed / skipped" flags so reminders can show again. */
+export async function resetReminderState() {
+  for (const k of STATE_KEYS) await deleteMeta(k);
+}
 
 const K = {
   enabled: 'diane.rem.enabled',
@@ -307,6 +317,15 @@ export async function explainReminders() {
     `  already fired this week: ${wlast === week}`,
     `  skipped this week: ${wskip === week}`,
     `  → would fire on next check: ${s.enabled && notificationPermission() === 'granted' && !!reg && now >= wdue && wlast !== week && wskip !== week}`,
+  );
+
+  lines.push(
+    '',
+    'stored flags:',
+    `  rem.lastDaily   = ${await getMeta('rem.lastDaily') ?? '(none)'}`,
+    `  rem.lastWeekly  = ${wlast ?? '(none)'}`,
+    `  rem.weeklySkip  = ${wskip ?? '(none)'}`,
+    'Use "Reset reminder state" to clear these.',
   );
   return lines.join('\n');
 }

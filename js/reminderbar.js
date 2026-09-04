@@ -36,6 +36,14 @@ export async function render() {
   }
 }
 
+/** Force both rows on screen regardless of due state — for testing the bar. */
+export function previewBar() {
+  if (!barEl) return;
+  barEl.innerHTML = '';
+  barEl.hidden = false;
+  barEl.append(dailyBar(), weeklyBar());
+}
+
 function btn(label, handler, cls = 'reminder-bar__btn') {
   const b = document.createElement('button');
   b.type = 'button';
