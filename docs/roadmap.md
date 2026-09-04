@@ -90,6 +90,15 @@ in Phase 2.
       timeless actions (never "this week"/"today") and must not duplicate a
       goal already set for the reviewed week. New goals are capitalized
       automatically, from any source.
+  - [x] **Completing goals the same way.** Mirrors creation:
+    - **Explicit** — "goal X completed" / "mark goal X as done" / "complete
+      goal: X". No LLM: a phrase match, then a conservative word-overlap
+      matcher picks which of this week's goals it means; an ambiguous or
+      unmatched phrase does nothing and says so rather than guessing wrong.
+    - **Implicit** — the same weekly-debrief call also returns a "Looks like
+      you finished these" list (goals it has real evidence for, not just a
+      mention), resolved back to the exact goal record so Mark done/dismiss
+      needs no re-matching.
 - [x] **Weekly spoken debrief.** Pipeline built end to end and confirmed on
       device — real Claude output, real TTS audio, 4 tones.
   - [x] LLM synthesis — `js/debrief.js`, Claude (Sonnet 5 default) with the
