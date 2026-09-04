@@ -138,6 +138,16 @@
         <input id="set-rate" type="range" min="0.6" max="1.6" step="0.1" value="1" />
       </label>
 
+      <label class="field">
+        <span>First day of week</span>
+        <select id="set-weekstart">
+          <option value="1">Monday</option>
+          <option value="0">Sunday</option>
+          <option value="6">Saturday</option>
+        </select>
+        <small class="muted">Sets where each week begins — for goals and the weekly debrief.</small>
+      </label>
+
       <hr class="settings-rule" />
 
       <div class="field">
@@ -147,6 +157,7 @@
           <span>Enable notifications</span>
         </label>
         <small id="rem-status" class="muted" aria-live="polite"></small>
+        <button id="rem-test" class="secondary-btn" type="button">Send test notification</button>
       </div>
 
       <label class="field">
@@ -158,15 +169,7 @@
       <div class="field">
         <span>Weekly debrief reminder</span>
         <div class="row-2">
-          <select id="rem-weekly-day">
-            <option value="0">Sunday</option>
-            <option value="1">Monday</option>
-            <option value="2">Tuesday</option>
-            <option value="3">Wednesday</option>
-            <option value="4">Thursday</option>
-            <option value="5">Friday</option>
-            <option value="6">Saturday</option>
-          </select>
+          <select id="rem-weekly-day"></select>
           <input id="rem-weekly-time" type="time" value="19:00" />
         </div>
       </div>
@@ -194,6 +197,11 @@
         </div>
         <small id="settings-status" class="muted" aria-live="polite"></small>
       </div>
+    </div>
+
+    <div class="settings-panel__foot">
+      <span id="settings-dirty" class="muted" hidden>Unsaved changes</span>
+      <button id="settings-save" class="primary-btn" disabled>Save settings</button>
     </div>
   </aside>
 

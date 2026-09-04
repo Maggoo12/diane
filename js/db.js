@@ -192,21 +192,36 @@ export async function getEntriesInRange(startISO, endISO) {
 
 // --- goals ---------------------------------------------------------------
 
-/**
- * The Monday of the week containing `date`, as a "YYYY-MM-DD" string.
- * Goals and weekly debriefs are keyed on this so everything lines up.
- */
-export function weekOf(date = new Date()) {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  const dayFromMonday = (d.getDay() + 6) % 7; // Sun=0 -> 6, Mon=1 -> 0, ...
-  d.setDate(d.getDate() - dayFromMonday);
-  // Build from local parts — toISOString() would shift the date across the
-  // UTC boundary for anyone not on UTC.
+/** First day of the week: 0=Sun, 1=Mon (default), 6=Sat. Regional preference. */
+export function getWeekStart() {
+  const raw = localStorage.getItem('diane.weekStart');
+  if (raw === null) return 1; // Number(null) is 0 — guard before coercing
+  const v = Number(raw);
+  return v === 0 || v === 6 ? v : 1;
+}
+export function setWeekStart(v) {
+  localStorage.setItem('diane.weekStart', String(Number(v)));
+}
+
+function ymdLocal(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+/**
+ * The first day of the week containing `date`, as a "YYYY-MM-DD" string.
+ * Honours the user's "first day of week" preference. Goals and the weekly
+ * debrief are keyed on this so everything lines up.
+ */
+export function weekOf(date = new Date()) {
+  const start = getWeekStart();
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const back = (d.getDay() - start + 7) % 7;
+  d.setDate(d.getDate() - back);
+  return ymdLocal(d);
 }
 
 /** Add a goal to a given week (defaults to the current week). */

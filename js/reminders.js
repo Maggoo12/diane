@@ -15,7 +15,7 @@
  * flags into the "meta" store that this module reads.
  */
 
-import { getMeta, setMeta, weekOf, getAllEntries } from './db.js';
+import { getMeta, setMeta, getAllEntries } from './db.js';
 
 const K = {
   enabled: 'diane.rem.enabled',
@@ -55,6 +55,19 @@ export async function requestNotificationPermission() {
 }
 
 // --- time maths -----------------------------------------------------
+// Reminder de-dup keys are Monday-anchored regardless of the user's
+// "first day of week" preference, so the app and the service worker
+// (which can't read that preference) always agree on which 7-day period
+// a "skip this week" / "already fired" flag belongs to.
+function mondayKey(base = new Date()) {
+  const d = new Date(base);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 function parseHM(hm) {
   const [h, m] = String(hm || '0:0').split(':').map(Number);
   return { h: h || 0, m: m || 0 };
@@ -68,7 +81,7 @@ function dailySlot(hm, base = new Date()) {
 }
 /** The weekly slot inside the Monday-week that contains `base`. */
 function weeklySlot(day, hm, base = new Date()) {
-  const monday = new Date(weekOf(base) + 'T00:00:00');
+  const monday = new Date(mondayKey(base) + 'T00:00:00');
   const { h, m } = parseHM(hm);
   const d = new Date(monday);
   d.setDate(d.getDate() + ((Number(day) + 6) % 7)); // Mon=0 … Sun=6
@@ -137,7 +150,25 @@ export async function scheduleReminders() {
     } catch { /* includeTriggered unsupported — ignore */ }
   }
 
-  if (!s.enabled || notificationPermission() !== 'granted' || !CAN_TRIGGER) return;
+  // Stash the schedule where the service worker can read it (periodic sync).
+  await setMeta('rem.schedule', {
+    enabled: s.enabled,
+    dailyTime: s.dailyTime,
+    weeklyDay: s.weeklyDay,
+    weeklyTime: s.weeklyTime,
+  });
+
+  if (!s.enabled || notificationPermission() !== 'granted') return;
+
+  // Best-effort background wake-up (Chrome / installed PWA only). Loose timing.
+  try {
+    const status = await navigator.permissions?.query({ name: 'periodic-background-sync' });
+    if (status?.state === 'granted' && 'periodicSync' in reg) {
+      await reg.periodicSync.register('diane-reminders', { minInterval: 6 * 3600 * 1000 });
+    }
+  } catch { /* not supported — rely on triggers + catch-up */ }
+
+  if (!CAN_TRIGGER) return;
 
   if (s.dailyTime) {
     await show(reg, DAILY, { showTrigger: new TimestampTrigger(nextDaily(s.dailyTime).getTime()) });
@@ -145,6 +176,26 @@ export async function scheduleReminders() {
   await show(reg, WEEKLY, {
     showTrigger: new TimestampTrigger(nextWeekly(s.weeklyDay, s.weeklyTime).getTime()),
   });
+}
+
+/** Fire a notification right now — a "does this device show notifications at all" check. */
+export async function sendTestNotification() {
+  if (notificationPermission() !== 'granted') {
+    const p = await requestNotificationPermission();
+    if (p !== 'granted') throw new Error('Notification permission not granted.');
+  }
+  const reg = await swReg();
+  if (reg) {
+    await reg.showNotification('Diane', {
+      body: 'Test notification — if you can see this, notifications work on this device.',
+      tag: 'diane-test',
+      icon: 'icons/icon.svg',
+    });
+  } else if ('Notification' in window) {
+    new Notification('Diane', { body: 'Test notification (no service worker).' });
+  } else {
+    throw new Error('Notifications unavailable.');
+  }
 }
 
 /** Fire anything that came due while the app was closed. */
@@ -156,7 +207,7 @@ export async function catchUpReminders() {
 
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
-  const thisWeek = weekOf(now);
+  const thisWeek = mondayKey(now);
 
   // daily
   if (s.dailyTime) {

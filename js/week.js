@@ -18,21 +18,20 @@ import {
   getTranscribeModel, setTranscribeModel,
 } from './transcribe.js';
 import { seedDatabase } from './seed.js';
-import { clearAll } from './db.js';
+import { clearAll, getWeekStart, setWeekStart } from './db.js';
 import { exportBackup, importBackup, downloadBlob } from './backup.js';
 import {
   getReminderSettings, setReminderSettings,
   notificationsSupported, notificationPermission, requestNotificationPermission,
-  scheduleReminders,
+  scheduleReminders, sendTestNotification,
 } from './reminders.js';
 
 /** @param {() => void} onDataChange fired after seeding/wiping, to refresh other views */
 export function initWeek(onDataChange) {
   initGoals();
   wireDebrief();
-  wireSettings(onDataChange);
+  wireSettingsPanel(onDataChange);
   wireBackup(onDataChange);
-  wireReminders();
 }
 
 /** Re-render the parts that can change while the view is hidden. */
@@ -97,71 +96,166 @@ function wireDebrief() {
   }
 }
 
-// --- settings ------------------------------------------------------
-function wireSettings(onDataChange) {
-  const apiKeyEl = document.getElementById('set-apikey');
-  const modelEl = document.getElementById('set-model');
-  const groqKeyEl = document.getElementById('set-groqkey');
-  const transcribeModelEl = document.getElementById('set-transcribe-model');
-  const voiceEl = document.getElementById('set-voice');
-  const rateEl = document.getElementById('set-rate');
-  const seedBtn = document.getElementById('set-seed');
-  const wipeBtn = document.getElementById('set-wipe');
-  const status = document.getElementById('settings-status');
+// --- settings panel (staged: nothing applies until "Save settings") ----
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-  apiKeyEl.value = getApiKey();
-  apiKeyEl.addEventListener('change', () => setApiKey(apiKeyEl.value));
+let dirty = false;
+let repopulate = () => {};
 
-  modelEl.value = getModel();
-  modelEl.addEventListener('change', () => setModel(modelEl.value));
+export function settingsDirty() { return dirty; }
+export function revertSettings() { repopulate(); }
 
-  groqKeyEl.value = getGroqKey();
-  groqKeyEl.addEventListener('change', () => setGroqKey(groqKeyEl.value));
+function wireSettingsPanel(onDataChange) {
+  const $ = (id) => document.getElementById(id);
+  const el = {
+    apiKey: $('set-apikey'), model: $('set-model'),
+    groqKey: $('set-groqkey'), transcribeModel: $('set-transcribe-model'),
+    voice: $('set-voice'), rate: $('set-rate'), weekStart: $('set-weekstart'),
+    remEnabled: $('rem-enabled'), remDaily: $('rem-daily-time'),
+    remWeeklyDay: $('rem-weekly-day'), remWeeklyTime: $('rem-weekly-time'),
+    remStatus: $('rem-status'), remTest: $('rem-test'),
+    save: $('settings-save'), dirtyLbl: $('settings-dirty'),
+    seed: $('set-seed'), wipe: $('set-wipe'), devStatus: $('settings-status'),
+  };
 
-  transcribeModelEl.value = getTranscribeModel();
-  transcribeModelEl.addEventListener('change', () => setTranscribeModel(transcribeModelEl.value));
+  function setDirty(v) {
+    dirty = v;
+    el.save.disabled = !v;
+    el.dirtyLbl.hidden = !v;
+  }
+  const markDirty = () => setDirty(true);
+
+  // Weekly-reminder day list, ordered from the chosen first day of the week.
+  function fillDayOptions(weekStart, keep) {
+    const want = keep ?? Number(el.remWeeklyDay.value);
+    el.remWeeklyDay.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const d = (Number(weekStart) + i) % 7;
+      const o = document.createElement('option');
+      o.value = String(d);
+      o.textContent = DAY_NAMES[d];
+      el.remWeeklyDay.appendChild(o);
+    }
+    el.remWeeklyDay.value = String(Number.isInteger(want) ? want : (Number(weekStart) + 6) % 7);
+  }
 
   if (isSpeechSupported()) {
     onVoicesReady((voices) => {
-      const current = getVoiceURI();
-      voiceEl.innerHTML = '<option value="">System default</option>';
+      const current = el.voice.value || getVoiceURI();
+      el.voice.innerHTML = '<option value="">System default</option>';
       for (const v of voices) {
         const o = document.createElement('option');
         o.value = v.voiceURI;
         o.textContent = `${v.name} (${v.lang})`;
-        if (v.voiceURI === current) o.selected = true;
-        voiceEl.appendChild(o);
+        el.voice.appendChild(o);
       }
+      el.voice.value = current;
     });
-    voiceEl.addEventListener('change', () => setVoiceURI(voiceEl.value));
   } else {
-    voiceEl.disabled = true;
+    el.voice.disabled = true;
   }
 
-  rateEl.value = String(getRate());
-  rateEl.addEventListener('input', () => setRate(rateEl.value));
+  function showRemStatus() {
+    const t = el.remStatus;
+    if (!notificationsSupported()) { t.textContent = 'Notifications aren\'t supported in this browser.'; return; }
+    const perm = notificationPermission();
+    if (perm === 'denied') t.textContent = 'Blocked — turn on notifications for this app in your device settings.';
+    else if (!el.remEnabled.checked) t.textContent = '';
+    else if (perm !== 'granted') t.textContent = 'Permission needed — re-tick to grant it.';
+    else t.textContent = 'On. Web reminders are best-effort — use "Send test notification" to check this device.';
+  }
 
-  seedBtn.addEventListener('click', async () => {
-    seedBtn.disabled = true;
+  repopulate = () => {
+    el.apiKey.value = getApiKey();
+    el.model.value = getModel();
+    el.groqKey.value = getGroqKey();
+    el.transcribeModel.value = getTranscribeModel();
+    el.voice.value = getVoiceURI();
+    el.rate.value = String(getRate());
+    el.weekStart.value = String(getWeekStart());
+    const r = getReminderSettings();
+    el.remEnabled.checked = r.enabled;
+    el.remDaily.value = r.dailyTime;
+    fillDayOptions(getWeekStart(), r.weeklyDay);
+    el.remWeeklyTime.value = r.weeklyTime;
+    setDirty(false);
+    showRemStatus();
+  };
+
+  // Stage-only listeners.
+  for (const k of ['apiKey', 'model', 'groqKey', 'transcribeModel', 'voice', 'rate', 'remDaily', 'remWeeklyDay', 'remWeeklyTime']) {
+    el[k].addEventListener('input', markDirty);
+    el[k].addEventListener('change', markDirty);
+  }
+  el.weekStart.addEventListener('change', () => { fillDayOptions(el.weekStart.value); markDirty(); });
+
+  el.remEnabled.addEventListener('change', async () => {
+    if (el.remEnabled.checked && notificationPermission() !== 'granted') {
+      const p = await requestNotificationPermission();
+      if (p !== 'granted') el.remEnabled.checked = false;
+    }
+    showRemStatus();
+    markDirty();
+  });
+
+  el.remTest.addEventListener('click', async () => {
+    el.remStatus.textContent = 'Sending test…';
     try {
-      const { entries, goals } = await seedDatabase();
-      status.textContent = `Loaded ${entries} sample entries and ${goals} goals.`;
-      renderGoals();
-      onDataChange?.();
+      await sendTestNotification();
+      el.remStatus.textContent = 'Test sent. If nothing appeared, check this app\'s notification permission in your OS settings.';
     } catch (err) {
-      status.textContent = err.message || String(err);
-    } finally {
-      seedBtn.disabled = false;
+      el.remStatus.textContent = err.message || String(err);
     }
   });
 
-  wipeBtn.addEventListener('click', async () => {
+  el.save.addEventListener('click', () => {
+    setApiKey(el.apiKey.value);
+    setModel(el.model.value);
+    setGroqKey(el.groqKey.value);
+    setTranscribeModel(el.transcribeModel.value);
+    setVoiceURI(el.voice.value);
+    setRate(el.rate.value);
+    setWeekStart(el.weekStart.value);
+    setReminderSettings({
+      enabled: el.remEnabled.checked,
+      dailyTime: el.remDaily.value,
+      weeklyDay: Number(el.remWeeklyDay.value),
+      weeklyTime: el.remWeeklyTime.value || '19:00',
+    });
+
+    // UI updates immediately; rescheduling notifications is a slow side-effect.
+    setDirty(false);
+    renderGoals();
+    onDataChange?.();
+    showRemStatus();
+    el.save.textContent = 'Saved';
+    setTimeout(() => { el.save.textContent = 'Save settings'; }, 1200);
+    scheduleReminders().catch(() => {});
+  });
+
+  // Data actions apply immediately — they're not preferences.
+  el.seed.addEventListener('click', async () => {
+    el.seed.disabled = true;
+    try {
+      const { entries, goals } = await seedDatabase();
+      el.devStatus.textContent = `Loaded ${entries} sample entries and ${goals} goals.`;
+      renderGoals();
+      onDataChange?.();
+    } catch (err) {
+      el.devStatus.textContent = err.message || String(err);
+    } finally {
+      el.seed.disabled = false;
+    }
+  });
+  el.wipe.addEventListener('click', async () => {
     if (!confirm('Delete ALL entries, audio and goals? This cannot be undone.')) return;
     await clearAll();
-    status.textContent = 'All data cleared.';
+    el.devStatus.textContent = 'All data cleared.';
     renderGoals();
     onDataChange?.();
   });
+
+  repopulate();
 }
 
 // --- backup ------------------------------------------------------
@@ -218,49 +312,3 @@ function wireBackup(onDataChange) {
   });
 }
 
-// --- reminders --------------------------------------------------
-function wireReminders() {
-  const enabledEl = document.getElementById('rem-enabled');
-  const dailyEl = document.getElementById('rem-daily-time');
-  const weeklyDayEl = document.getElementById('rem-weekly-day');
-  const weeklyTimeEl = document.getElementById('rem-weekly-time');
-  const status = document.getElementById('rem-status');
-
-  const s = getReminderSettings();
-  enabledEl.checked = s.enabled;
-  dailyEl.value = s.dailyTime;
-  weeklyDayEl.value = String(s.weeklyDay);
-  weeklyTimeEl.value = s.weeklyTime;
-
-  function showStatus() {
-    if (!notificationsSupported()) { status.textContent = 'Notifications aren\'t supported in this browser.'; return; }
-    const perm = notificationPermission();
-    if (perm === 'denied') status.textContent = 'Notifications are blocked — allow them in your browser settings.';
-    else if (!enabledEl.checked) status.textContent = '';
-    else if (perm !== 'granted') status.textContent = 'Tap the checkbox again to grant permission.';
-    else status.textContent = 'On. Scheduled notifications are best-effort on the web — tell us if they don\'t fire.';
-  }
-  showStatus();
-
-  async function apply() {
-    setReminderSettings({
-      enabled: enabledEl.checked,
-      dailyTime: dailyEl.value,
-      weeklyDay: Number(weeklyDayEl.value),
-      weeklyTime: weeklyTimeEl.value || '19:00',
-    });
-    await scheduleReminders();
-    showStatus();
-  }
-
-  enabledEl.addEventListener('change', async () => {
-    if (enabledEl.checked) {
-      const perm = await requestNotificationPermission();
-      if (perm !== 'granted') { enabledEl.checked = false; showStatus(); return; }
-    }
-    apply();
-  });
-  dailyEl.addEventListener('change', apply);
-  weeklyDayEl.addEventListener('change', apply);
-  weeklyTimeEl.addEventListener('change', apply);
-}

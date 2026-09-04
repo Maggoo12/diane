@@ -22,7 +22,7 @@
 
 import { initCapture } from './capture.js';
 import { renderTimeline } from './timeline.js';
-import { initWeek, refreshWeek } from './week.js';
+import { initWeek, refreshWeek, settingsDirty, revertSettings } from './week.js';
 import { initReminders } from './reminders.js';
 
 function setView(name) {
@@ -37,7 +37,14 @@ function initSettingsToggle() {
   const panel = document.getElementById('settings-panel');
   const backdrop = document.getElementById('settings-backdrop');
   const open = () => { panel.hidden = false; backdrop.hidden = false; };
-  const close = () => { panel.hidden = true; backdrop.hidden = true; };
+  const close = () => {
+    if (settingsDirty()) {
+      if (!confirm('Discard unsaved settings changes?')) return;
+      revertSettings();
+    }
+    panel.hidden = true;
+    backdrop.hidden = true;
+  };
 
   document.getElementById('settings-open').addEventListener('click', open);
   document.getElementById('settings-close').addEventListener('click', close);
