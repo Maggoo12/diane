@@ -47,9 +47,19 @@ in Phase 2.
       online (currently manual via ↻).
 - [~] **Daily reminder.** `js/reminders.js` — local notification at a
       user-set time, only on days with no entry yet. Off by default; enable +
-      set time in Settings. Scheduling is best-effort (Notification Triggers
-      API where available, catch-up-on-open otherwise). **Needs a device test**
-      to confirm it fires.
+      set time in Settings, plus a "Send test notification" button. Three
+      mechanisms tried: Notification Triggers API, `periodicSync`,
+      catch-up-on-open.
+  - ⚠️ **Scheduled notifications did not fire on Magnus's installed Android
+    PWA.** Likely: Notification Triggers isn't in his Chrome (shipped only
+    behind a flag / dead origin trial), and `periodicSync` needs high site
+    engagement and still has loose timing. **A PWA cannot reliably fire a
+    timed notification while closed without a push server.** The real options:
+    (a) a tiny push backend (FCM/Web Push) that sends at the scheduled time;
+    (b) accept "only when you open the app" (catch-up); (c) go native. This is
+    a strong data point for the native question — see Phase 0. First: confirm
+    with "Send test notification" whether notifications appear *at all* on the
+    device (rules out an OS-level block vs. a scheduling problem).
 - [x] **Goals input.** `js/goals.js` — add / tick / delete, scoped to the
       current week (`db.weekOf`). Lives in the Week view. Past weeks' goals are
       kept (keyed by week) and the debrief uses them, but there's no history UI.
@@ -74,10 +84,11 @@ in Phase 2.
         Notification actions: **Snooze 1h** and **Skip this week** (Android
         shows ~2); a body tap opens the app to the Week view. Snooze/skip are
         handled in `sw.js` via the `meta` store.
+        - Same firing problem as the daily reminder above — needs a push
+          backend or native to be reliable.
         - Still to do: **Postpone 2h / Postpone to a chosen time** (needs an
           in-app postpone panel — the notification can't hold that many
           buttons).
-        - Needs a device test to confirm scheduling fires.
   - [ ] Tone picker (voice done; "warm / dry / just-the-facts" tone not yet).
   - [ ] **Language.** Capture already handles mixed English/Danish (Whisper
         auto-detects). The debrief and TTS should follow suit — summarise in
@@ -96,6 +107,11 @@ in Phase 2.
         cloud drive / file share) on a schedule — never a Diane-run server.
   - [ ] Note: `<a download>` works in a browser tab; confirm it also works
         from the installed PWA on Android (Web Share as fallback if not).
+- [x] **Settings & UI.** Settings live in a global ⚙ overlay panel (was
+      buried in the Week view). Panel is staged — changes apply only on "Save
+      settings", closing with unsaved changes prompts to discard. **First day
+      of week** setting (Monday default; drives `db.weekOf`).
+  - [ ] Full UI localization (strings + a locale switcher) — later, on demand.
 - [ ] **Privacy basics.** Encrypted at rest; one-tap delete-all. Fuller
       provider/data story in **Privacy & AI providers** below.
 
