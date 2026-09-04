@@ -34,17 +34,18 @@ in Phase 2.
       text, voice pending a device with a mic. Offline audio queue not yet
       built (entry saves with `transcriptStatus: 'pending'` but nothing retries).
 - [x] **Timeline.** Reverse-chronological list, grouped by day. Per-entry
-      delete (× with a confirm prompt).
+      delete and **edit** (✎ swaps the text for a textarea, Save/Cancel —
+      works on voice entries too, e.g. to fix a transcription).
 - [x] **Search.** Plain substring search across entries (debounced).
-- [~] **Transcription behind an interface.** `js/transcribe.js` is now
+- [x] **Transcription behind an interface.** `js/transcribe.js` is
       `(Blob) => Promise<string>`, POSTing the recorded audio to **Groq's
       Whisper** endpoint (`whisper-large-v3-turbo`) with the user's own
       on-device key. Web Speech is abandoned (network errors, no offline).
       Voice entry saves immediately as "pending", transcribes in the
       background, fills the text in. A ↻ button on pending entries retries.
-      Verified: request shape, retry flow. **Pending Magnus's Groq key** for a
-      real run. Still to do: automatic retry of pending entries when back
-      online (currently manual via ↻).
+      **Confirmed on device** — fast, handles mixed English/Danish. Still to
+      do: automatic retry of pending entries when back online (currently
+      manual via ↻).
 - [~] **Reminders — daily nudge + weekly debrief.** `js/reminders.js` holds
       the schedule (user-set time; daily off by default) and the "is one due"
       logic; `js/reminderbar.js` is the **in-app bar** shown when a reminder
@@ -66,21 +67,22 @@ in Phase 2.
   - Diagnostics kept in Settings: "Send test notification", "Fire reminder
     now", "Diagnose" (prints every gate + a would-fire verdict).
 - [x] **Goals input.** `js/goals.js` — add / tick / delete, scoped to the
-      current week (`db.weekOf`). Lives in the Week view. Past weeks' goals are
-      kept (keyed by week) and the debrief uses them, but there's no history UI.
-  - [ ] **Past-weeks view.** See earlier weeks' goals and how they went — a
-        collapsible list or a week picker in the Week view.
+      current week (`db.weekOf`). Lives in the Week view.
+  - [x] **Past-weeks view.** `js/goalhistory.js` — a collapsed "Past weeks'
+        goals" card, grouped by week (newest first) with a done-count summary;
+        same tick/delete as the current week.
   - [ ] **AI-suggested goals.** At the start of a week, Diane reads recent
         entries and proposes candidate goals ("you've mentioned the
-        dermatologist three times — make it a goal?"). User accepts / edits /
-        rejects each; never created silently. Same LLM pipe as the debrief.
-        Manual entry stays the base.
-- [~] **Weekly spoken debrief.** Pipeline built end to end:
-  - [x] LLM synthesis — `js/debrief.js`, calls Claude (Sonnet 5 default) with
-        the user's own API key stored on-device; plain non-AI fallback when no
-        key. Request shape verified; real output pending Magnus's key.
+        dermatologist three times — make it a goal?"). Shown as tap-to-accept
+        chips — nothing is added to the real goal list until accepted, and the
+        wording can be edited first. Same LLM pipe as the debrief. Manual entry
+        stays the base.
+- [x] **Weekly spoken debrief.** Pipeline built end to end and confirmed on
+      device — real Claude output, real TTS audio, 4 tones.
+  - [x] LLM synthesis — `js/debrief.js`, Claude (Sonnet 5 default) with the
+        user's own on-device API key; plain non-AI fallback with no key.
   - [x] TTS playback — `js/speak.js`, browser `speechSynthesis`, voice picker +
-        speed. Real audio pending a device test.
+        speed.
   - [x] Synthetic corpus — `js/seed.js`, ~3 weeks of entries + 3 weeks of
         goals with deliberate threads (unbooked dermatologist, presentation
         arc, patchy running habit). "Load sample month" in Settings.
