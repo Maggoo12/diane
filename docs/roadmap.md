@@ -45,21 +45,26 @@ in Phase 2.
       Verified: request shape, retry flow. **Pending Magnus's Groq key** for a
       real run. Still to do: automatic retry of pending entries when back
       online (currently manual via ↻).
-- [~] **Daily reminder.** `js/reminders.js` — local notification at a
-      user-set time, only on days with no entry yet. Off by default; enable +
-      set time in Settings, plus a "Send test notification" button. Three
-      mechanisms tried: Notification Triggers API, `periodicSync`,
-      catch-up-on-open.
-  - ⚠️ **Scheduled notifications did not fire on Magnus's installed Android
-    PWA.** Likely: Notification Triggers isn't in his Chrome (shipped only
-    behind a flag / dead origin trial), and `periodicSync` needs high site
-    engagement and still has loose timing. **A PWA cannot reliably fire a
-    timed notification while closed without a push server.** The real options:
-    (a) a tiny push backend (FCM/Web Push) that sends at the scheduled time;
-    (b) accept "only when you open the app" (catch-up); (c) go native. This is
-    a strong data point for the native question — see Phase 0. First: confirm
-    with "Send test notification" whether notifications appear *at all* on the
-    device (rules out an OS-level block vs. a scheduling problem).
+- [~] **Reminders — daily nudge + weekly debrief.** `js/reminders.js` holds
+      the schedule (user-set time; daily off by default) and the "is one due"
+      logic; `js/reminderbar.js` is the **in-app bar** shown when a reminder
+      is due and the app is open — postpone/skip actions inline (daily:
+      Snooze 1h / Dismiss; weekly: 1h / 2h / Tonight / Skip this week).
+  - **What actually works:** the in-app bar, when you open or return to the
+    app. This is the reliable path and it works in every browser.
+  - **What doesn't:** a real system notification while the app is closed.
+    Confirmed on Magnus's device (Brave/Android): Notification Triggers isn't
+    implemented, `periodicSync` won't fire, and Brave doesn't render
+    notification action buttons even when it does show a notification. A
+    service-worker notification is also dropped by the browser while its own
+    page is focused — which is why the earlier "catch-up" marked reminders
+    fired but showed nothing.
+  - **Decision point:** for real closed-app reminders it's (a) a tiny push
+    backend (Web Push / FCM sends at the scheduled time), or (b) go native.
+    Strong input to the Phase 0 native question. `sw.js` keeps a best-effort
+    `periodicsync`/trigger path for Chrome users; it's a bonus, not the plan.
+  - Diagnostics kept in Settings: "Send test notification", "Fire reminder
+    now", "Diagnose" (prints every gate + a would-fire verdict).
 - [x] **Goals input.** `js/goals.js` — add / tick / delete, scoped to the
       current week (`db.weekOf`). Lives in the Week view. Past weeks' goals are
       kept (keyed by week) and the debrief uses them, but there's no history UI.
@@ -79,16 +84,12 @@ in Phase 2.
   - [x] Synthetic corpus — `js/seed.js`, ~3 weeks of entries + 3 weeks of
         goals with deliberate threads (unbooked dermatologist, presentation
         arc, patchy running habit). "Load sample month" in Settings.
-  - [~] **End-of-week notification.** `js/reminders.js` — "your weekly debrief
-        is ready", default **Sunday 19:00**, user-settable (day + time).
-        Notification actions: **Snooze 1h** and **Skip this week** (Android
-        shows ~2); a body tap opens the app to the Week view. Snooze/skip are
-        handled in `sw.js` via the `meta` store.
-        - Same firing problem as the daily reminder above — needs a push
-          backend or native to be reliable.
-        - Still to do: **Postpone 2h / Postpone to a chosen time** (needs an
-          in-app postpone panel — the notification can't hold that many
-          buttons).
+  - [~] **End-of-week nudge.** Default **Sunday 19:00**, user-settable. Shows
+        as the in-app reminder bar (1h / 2h / Tonight / Skip this week; tap to
+        open the Week view). See the Reminders item above for the closed-app
+        limitation.
+        - "Postpone to an exact chosen time" (vs. the preset buttons) still
+          to do.
   - [ ] Tone picker (voice done; "warm / dry / just-the-facts" tone not yet).
   - [ ] **Language.** Capture already handles mixed English/Danish (Whisper
         auto-detects). The debrief and TTS should follow suit — summarise in
