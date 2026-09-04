@@ -122,6 +122,12 @@ in Phase 2.
         auto-detects). The debrief and TTS should follow suit — summarise in
         the user's dominant language (or a chosen one) and pick a matching
         voice.
+    - **Revisit — voice list.** Settings → Voice currently lists every voice
+      `speechSynthesis.getVoices()` returns, unfiltered — on Android that's
+      every installed language, dozens of options. Wasn't a deliberate
+      choice, just what the unfiltered API gives you. Fix alongside the
+      language work above: filter/group by language, default to one matching
+      the debrief's language.
   - [ ] Move the API call behind a serverless proxy before other users.
 - [x] **"How's my week so far?" — on-demand check-in.** Button in the Week
       view; `mode: 'midweek'` swaps in a shorter, nudge-framed prompt. Voice
