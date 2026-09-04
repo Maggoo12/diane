@@ -12,7 +12,7 @@
  * Entry data is NOT here — that lives in IndexedDB (see js/db.js).
  */
 
-const CACHE_VERSION = 'diane-v9';
+const CACHE_VERSION = 'diane-v10';
 const SHELL = [
   './',
   './index.html',
