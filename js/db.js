@@ -283,6 +283,20 @@ export async function toggleGoal(id) {
   await txDone(tx);
 }
 
+/** Mark a goal done. Unlike toggleGoal this only ever sets it, never unsets —
+ *  for the "goal X completed" voice/text command and debrief completions. */
+export async function completeGoal(id) {
+  const db = await openDB();
+  const tx = db.transaction('goals', 'readwrite');
+  const store = tx.objectStore('goals');
+  const goal = await promisify(store.get(id));
+  if (goal && !goal.done) {
+    goal.done = true;
+    store.put(goal);
+  }
+  await txDone(tx);
+}
+
 export async function deleteGoal(id) {
   const db = await openDB();
   const tx = db.transaction('goals', 'readwrite');

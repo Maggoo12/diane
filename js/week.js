@@ -20,7 +20,7 @@ import {
   getTranscribeModel, setTranscribeModel,
 } from './transcribe.js';
 import { seedDatabase } from './seed.js';
-import { clearAll, getWeekStart, setWeekStart, addGoal, weekOf } from './db.js';
+import { clearAll, getWeekStart, setWeekStart, addGoal, weekOf, completeGoal } from './db.js';
 import { BUILD } from './version.js';
 import { exportBackup, importBackup, downloadBlob } from './backup.js';
 import {
@@ -57,8 +57,50 @@ function wireDebrief() {
   const playBtn = document.getElementById('debrief-play');
   const goalsBox = document.getElementById('debrief-goals');
   const goalsList = document.getElementById('debrief-goals-list');
+  const doneBox = document.getElementById('debrief-done');
+  const doneList = document.getElementById('debrief-done-list');
 
   let lastText = '';
+
+  function renderDoneSuggestions(suggestions) {
+    doneList.innerHTML = '';
+    if (!suggestions?.length) {
+      doneBox.hidden = true;
+      return;
+    }
+    doneBox.hidden = false;
+    for (const goal of suggestions) doneList.appendChild(renderDoneRow(goal));
+  }
+
+  function renderDoneRow(goal) {
+    const row = document.createElement('div');
+    row.className = 'goal-suggestion';
+
+    const text = document.createElement('span');
+    text.className = 'goal-suggestion__text';
+    text.textContent = goal.text;
+
+    const markDone = document.createElement('button');
+    markDone.type = 'button';
+    markDone.className = 'goal-suggestion__accept';
+    markDone.textContent = 'Mark done';
+    markDone.addEventListener('click', async () => {
+      markDone.disabled = true;
+      await completeGoal(goal.id);
+      row.remove();
+      renderGoals();
+    });
+
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'goal-suggestion__dismiss';
+    dismiss.textContent = '×';
+    dismiss.setAttribute('aria-label', 'Dismiss suggestion');
+    dismiss.addEventListener('click', () => row.remove());
+
+    row.append(text, markDone, dismiss);
+    return row;
+  }
 
   function renderSuggestedGoals(suggestions, week) {
     goalsList.innerHTML = '';
@@ -113,8 +155,9 @@ function wireDebrief() {
     out.textContent = '';
     status.textContent = 'Thinking…';
     renderSuggestedGoals([]);
+    renderDoneSuggestions([]);
     try {
-      const { text, source, week, suggestedGoals } = await generateSummary({ mode });
+      const { text, source, week, suggestedGoals, suggestedDone } = await generateSummary({ mode });
       lastText = text;
       out.textContent = text;
       status.textContent =
@@ -122,6 +165,7 @@ function wireDebrief() {
         : source === 'empty' ? ''
         : '';
       playBtn.disabled = !text || !isSpeechSupported();
+      renderDoneSuggestions(suggestedDone);
       renderSuggestedGoals(suggestedGoals, week);
     } catch (err) {
       status.textContent = err.message || String(err);

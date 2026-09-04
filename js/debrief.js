@@ -95,9 +95,13 @@ After the debrief text, on its own line write exactly ---GOALS--- and nothing el
 - Only suggest something with real signal in the entries; it is fine to suggest none, in which case write nothing after the marker.
 Never mention this marker or these goals inside the spoken debrief text itself.`;
 
+const DONE_NOTE = `
+
+After that, on its own line write exactly ---DONE--- and nothing else on that line. Then list any of THIS week's goals (given above) that the entries show were actually completed but are not yet marked done. Copy each one using its EXACT text as given above, one per line, each starting with "- ". Only include a goal here if there is real evidence in the entries that it happened — not just that it was mentioned. It is fine to include none. Never mention this marker inside the spoken debrief text itself.`;
+
 function buildSystem(mode) {
   const s = `${SYSTEM_BASE}\n\n${TONES[getTone()] || TONES.warm}`;
-  return mode === 'midweek' ? s + MIDWEEK_NOTE : s + GOALS_NOTE;
+  return mode === 'midweek' ? s + MIDWEEK_NOTE : s + GOALS_NOTE + DONE_NOTE;
 }
 
 function fmtWhen(iso) {
@@ -134,7 +138,7 @@ function buildUserMessage({ week, entries, goals }, mode) {
 // --- the engine --------------------------------------------------
 /**
  * @param {{ mode?: 'weekly'|'midweek', week?: string }} opts
- * @returns {Promise<{ text: string, source: 'claude'|'local'|'empty', week: string, suggestedGoals: string[] }>}
+ * @returns {Promise<{ text: string, source: 'claude'|'local'|'empty', week: string, suggestedGoals: string[], suggestedDone: {id:string,text:string}[] }>}
  */
 export async function generateSummary({ mode = 'weekly', week = weekOf() } = {}) {
   const data = await collectWeek(week);
@@ -144,17 +148,32 @@ export async function generateSummary({ mode = 'weekly', week = weekOf() } = {})
       source: 'empty',
       week,
       suggestedGoals: [],
+      suggestedDone: [],
       text: "There aren't any entries for this week yet, so there's nothing to look back on. Come back once you've written a few.",
     };
   }
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    return { source: 'local', week, suggestedGoals: [], text: localSummary(data, mode) };
+    return { source: 'local', week, suggestedGoals: [], suggestedDone: [], text: localSummary(data, mode) };
   }
 
-  const { text, suggestedGoals } = await callClaude({ apiKey, model: getModel(), data, mode });
-  return { source: 'claude', week, text, suggestedGoals: mode === 'weekly' ? suggestedGoals : [] };
+  const { text, suggestedGoals, doneTexts } = await callClaude({ apiKey, model: getModel(), data, mode });
+
+  // Resolve Claude's echoed goal text back to real (not-yet-done) goal
+  // records from the exact list we sent it, so the UI can complete by id.
+  const suggestedDone = mode === 'weekly'
+    ? doneTexts
+        .map((t) => data.goals.find((g) => !g.done && g.text.trim().toLowerCase() === t.trim().toLowerCase()))
+        .filter(Boolean)
+        .map((g) => ({ id: g.id, text: g.text }))
+    : [];
+
+  return {
+    source: 'claude', week, text,
+    suggestedGoals: mode === 'weekly' ? suggestedGoals : [],
+    suggestedDone,
+  };
 }
 
 async function callClaude({ apiKey, model, data, mode }) {
@@ -200,24 +219,50 @@ async function callClaude({ apiKey, model, data, mode }) {
     .join('\n')
     .trim();
   if (!raw) throw new Error('Claude returned an empty response.');
-  return parseGoalsMarker(raw);
+  return parseMarkers(raw);
 }
 
 const GOALS_MARKER = '---GOALS---';
+const DONE_MARKER = '---DONE---';
 
-/** Split the response into the spoken text and any suggested-goals lines. */
-function parseGoalsMarker(raw) {
-  const idx = raw.indexOf(GOALS_MARKER);
-  if (idx === -1) return { text: raw, suggestedGoals: [] };
-  const text = raw.slice(0, idx).trim();
-  const suggestedGoals = raw
-    .slice(idx + GOALS_MARKER.length)
+function parseList(section) {
+  return section
     .split('\n')
     .map((l) => l.trim())
     .filter((l) => l.startsWith('- '))
     .map((l) => l.slice(2).trim())
     .filter(Boolean);
-  return { text, suggestedGoals };
+}
+
+/** Split the response into the spoken text, suggested-goals lines, and done lines. */
+function parseMarkers(raw) {
+  const goalsIdx = raw.indexOf(GOALS_MARKER);
+  const doneIdx = raw.indexOf(DONE_MARKER);
+
+  if (goalsIdx === -1 && doneIdx === -1) {
+    return { text: raw, suggestedGoals: [], doneTexts: [] };
+  }
+
+  const firstIdx = [goalsIdx, doneIdx].filter((i) => i !== -1).sort((a, b) => a - b)[0];
+  const text = raw.slice(0, firstIdx).trim();
+
+  let goalsSection = '';
+  let doneSection = '';
+  if (goalsIdx !== -1 && doneIdx !== -1) {
+    if (goalsIdx < doneIdx) {
+      goalsSection = raw.slice(goalsIdx + GOALS_MARKER.length, doneIdx);
+      doneSection = raw.slice(doneIdx + DONE_MARKER.length);
+    } else {
+      doneSection = raw.slice(doneIdx + DONE_MARKER.length, goalsIdx);
+      goalsSection = raw.slice(goalsIdx + GOALS_MARKER.length);
+    }
+  } else if (goalsIdx !== -1) {
+    goalsSection = raw.slice(goalsIdx + GOALS_MARKER.length);
+  } else {
+    doneSection = raw.slice(doneIdx + DONE_MARKER.length);
+  }
+
+  return { text, suggestedGoals: parseList(goalsSection), doneTexts: parseList(doneSection) };
 }
 
 // --- no-API fallback ------------------------------------------------

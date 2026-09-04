@@ -17,9 +17,9 @@
  * buzz on save, and it must still save something if transcription fails.
  */
 
-import { addEntry, setEntryTranscript, addGoal } from './db.js';
+import { addEntry, setEntryTranscript, addGoal, getGoals, completeGoal, weekOf } from './db.js';
 import { transcribe, isTranscriptionConfigured } from './transcribe.js';
-import { parseGoalTrigger } from './goaltrigger.js';
+import { parseGoalTrigger, parseGoalCompletion, findMatchingGoal } from './goaltrigger.js';
 
 /**
  * Wire up the voice + text capture UI.
@@ -36,18 +36,35 @@ export function initCapture(onSaved) {
   const textPane = document.getElementById('text-pane');
   const statusEl = document.getElementById('capture-status');
 
-  // "Add a goal to X" / "remind me to X" — an explicit command, so it creates
-  // the goal right away (no LLM, see goaltrigger.js). The entry itself still
-  // saves normally either way.
+  // "Add a goal to X" / "remind me to X" and "goal X completed" — explicit
+  // commands, so they act right away (no LLM, see goaltrigger.js). The entry
+  // itself still saves normally either way. Completion is checked first —
+  // see the comment in goaltrigger.js on why the order matters.
   let statusTimer = null;
-  async function checkGoalTrigger(text) {
+  function showCaptureStatus(text) {
+    if (!statusEl) return;
+    clearTimeout(statusTimer);
+    statusEl.textContent = text;
+    statusTimer = setTimeout(() => { statusEl.textContent = ''; }, 5000);
+  }
+
+  async function checkGoalCommands(text) {
+    const completionPhrase = parseGoalCompletion(text);
+    if (completionPhrase) {
+      const match = findMatchingGoal(completionPhrase, await getGoals(weekOf()));
+      if (match) {
+        await completeGoal(match.id);
+        showCaptureStatus(`✓ Marked done: "${match.text}"`);
+      } else {
+        showCaptureStatus(`Heard a goal-completed command but couldn't match it to a goal.`);
+      }
+      return;
+    }
+
     const goal = parseGoalTrigger(text);
-    if (!goal) return;
-    await addGoal({ text: goal });
-    if (statusEl) {
-      clearTimeout(statusTimer);
-      statusEl.textContent = `✓ Added goal: "${goal}"`;
-      statusTimer = setTimeout(() => { statusEl.textContent = ''; }, 5000);
+    if (goal) {
+      await addGoal({ text: goal });
+      showCaptureStatus(`✓ Added goal: "${goal}"`);
     }
   }
 
@@ -85,7 +102,7 @@ export function initCapture(onSaved) {
     textInput.value = '';
     buzz();
     onSaved?.();
-    checkGoalTrigger(text);
+    checkGoalCommands(text);
   }
 
   textSave.addEventListener('click', saveText);
@@ -183,7 +200,7 @@ export function initCapture(onSaved) {
       if (text) {
         await setEntryTranscript(entry.id, text);
         onSaved?.();
-        checkGoalTrigger(text);
+        checkGoalCommands(text);
       }
       liveEl.textContent = '';
     } catch (err) {

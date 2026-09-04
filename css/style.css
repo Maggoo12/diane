@@ -227,6 +227,7 @@ details[open] > .card__title { margin-bottom: var(--gap); }
   color: var(--text-dim);
 }
 .goal-suggestion { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.goal-suggestion__text { flex: 1; font-size: 0.9rem; }
 .goal-suggestion input[type="text"] {
   flex: 1;
   background: var(--surface-2);
