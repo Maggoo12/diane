@@ -90,7 +90,10 @@ in Phase 2.
         limitation.
         - "Postpone to an exact chosen time" (vs. the preset buttons) still
           to do.
-  - [ ] Tone picker (voice done; "warm / dry / just-the-facts" tone not yet).
+  - [x] **Tone picker.** Settings → Debrief tone: Warm (default) / Dry /
+        Direct / Coach. `debrief.js` composes a tone-neutral base + the chosen
+        tone into the system prompt; applies to the weekly debrief and the
+        mid-week check-in.
   - [ ] **Language.** Capture already handles mixed English/Danish (Whisper
         auto-detects). The debrief and TTS should follow suit — summarise in
         the user's dominant language (or a chosen one) and pick a matching
