@@ -12,7 +12,7 @@
  * Entry data is NOT here — that lives in IndexedDB (see js/db.js).
  */
 
-const CACHE_VERSION = 'diane-v16'; // keep in sync with BUILD in js/version.js
+const CACHE_VERSION = 'diane-v17'; // keep in sync with BUILD in js/version.js
 const SHELL = [
   './',
   './index.html',
@@ -30,6 +30,7 @@ const SHELL = [
   './js/backup.js',
   './js/reminders.js',
   './js/reminderbar.js',
+  './js/goalhistory.js',
   './js/version.js',
   './manifest.webmanifest',
   './icons/icon.svg',

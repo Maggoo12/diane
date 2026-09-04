@@ -4,6 +4,7 @@
  */
 
 import { initGoals, renderGoals } from './goals.js';
+import { initGoalHistory, render as renderGoalHistory } from './goalhistory.js';
 import {
   generateSummary,
   getApiKey, setApiKey,
@@ -33,6 +34,7 @@ import { previewBar, render as renderReminderBar } from './reminderbar.js';
 /** @param {() => void} onDataChange fired after seeding/wiping, to refresh other views */
 export function initWeek(onDataChange) {
   initGoals();
+  initGoalHistory();
   wireDebrief();
   wireSettingsPanel(onDataChange);
   wireBackup(onDataChange);
@@ -41,6 +43,7 @@ export function initWeek(onDataChange) {
 /** Re-render the parts that can change while the view is hidden. */
 export function refreshWeek() {
   renderGoals();
+  renderGoalHistory();
 }
 
 // --- debrief --------------------------------------------------------
@@ -283,6 +286,7 @@ function wireSettingsPanel(onDataChange) {
       const { entries, goals } = await seedDatabase();
       el.devStatus.textContent = `Loaded ${entries} sample entries and ${goals} goals.`;
       renderGoals();
+      renderGoalHistory();
       onDataChange?.();
     } catch (err) {
       el.devStatus.textContent = err.message || String(err);
@@ -295,6 +299,7 @@ function wireSettingsPanel(onDataChange) {
     await clearAll();
     el.devStatus.textContent = 'All data cleared.';
     renderGoals();
+    renderGoalHistory();
     onDataChange?.();
   });
 
@@ -345,6 +350,7 @@ function wireBackup(onDataChange) {
       const counts = await importBackup(file, { replace: true, onProgress: setBar });
       status.textContent = `Imported ${counts.entries} entries, ${counts.goals} goals, ${counts.audio} recordings.`;
       renderGoals();
+      renderGoalHistory();
       onDataChange?.();
     } catch (err) {
       status.textContent = err.message || String(err);

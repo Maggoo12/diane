@@ -180,6 +180,16 @@ details[open] > .card__title { margin-bottom: var(--gap); }
   font: inherit;
 }
 .goals-list { display: flex; flex-direction: column; gap: 6px; }
+
+.week-history { margin-bottom: 4px; }
+.week-history + .week-history { margin-top: 12px; }
+.week-history summary {
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  padding: 4px 0;
+}
+.week-history .goals-list { margin-top: 8px; padding-left: 4px; }
 .goal {
   display: flex;
   align-items: center;
@@ -389,7 +399,8 @@ textarea, .search {
 .entry__audio { margin-top: 8px; width: 100%; }
 
 .entry__delete,
-.entry__retry {
+.entry__retry,
+.entry__edit {
   background: transparent;
   border: 0;
   color: var(--text-dim);
@@ -399,10 +410,23 @@ textarea, .search {
   border-radius: 6px;
   cursor: pointer;
 }
-.entry__delete { margin-left: auto; }   /* shove delete to the far right */
+.entry__meta-actions { margin-left: auto; display: flex; gap: 2px; } /* shove the group right */
 .entry__retry:hover { color: var(--accent); background: var(--surface-2); }
 .entry__retry[disabled] { opacity: 0.6; cursor: default; }
+.entry__edit:hover { color: var(--accent); background: var(--surface-2); }
 .entry__delete:hover { color: var(--danger); background: var(--surface-2); }
+
+.entry__edit-input {
+  width: 100%;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  resize: vertical;
+}
+.entry__edit-actions { display: flex; gap: 8px; margin-top: 8px; }
 
 .empty-state { color: var(--text-dim); text-align: center; padding: 24px 0; }
 .empty-state[hidden] { display: none; }

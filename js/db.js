@@ -130,6 +130,11 @@ export async function importEntry({ text, source = 'text', createdAt }) {
   return entry;
 }
 
+/** Edit an entry's text directly, from the timeline (voice or text entry). */
+export async function updateEntryText(id, text) {
+  return setEntryTranscript(id, text); // same effect: set the text, mark it done
+}
+
 /**
  * Fill in (or replace) an entry's transcript and mark it done.
  * Used after a voice entry's audio comes back from the transcription API.

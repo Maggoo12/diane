@@ -3,7 +3,7 @@
  * Also owns the search box (plain substring match, see db.searchEntries).
  */
 
-import { searchEntries, getAudio, deleteEntry, setEntryTranscript } from './db.js';
+import { searchEntries, getAudio, deleteEntry, setEntryTranscript, updateEntryText } from './db.js';
 import { transcribe, isTranscriptionConfigured } from './transcribe.js';
 
 const entriesEl = document.getElementById('entries');
@@ -98,7 +98,18 @@ function renderEntry(entry) {
     meta.appendChild(retry);
   }
 
-  // Delete control — pushed to the right by margin-left:auto in the CSS.
+  // Edit + delete, grouped and pushed to the right (see .entry__meta-actions).
+  const actions = document.createElement('div');
+  actions.className = 'entry__meta-actions';
+
+  const editBtn = document.createElement('button');
+  editBtn.type = 'button';
+  editBtn.className = 'entry__edit';
+  editBtn.textContent = '✎';
+  editBtn.setAttribute('aria-label', 'Edit entry');
+  editBtn.addEventListener('click', () => startEdit());
+  actions.appendChild(editBtn);
+
   const del = document.createElement('button');
   del.type = 'button';
   del.className = 'entry__delete';
@@ -109,8 +120,9 @@ function renderEntry(entry) {
     await deleteEntry(entry.id);
     renderTimeline();
   });
-  meta.appendChild(del);
+  actions.appendChild(del);
 
+  meta.appendChild(actions);
   el.appendChild(meta);
 
   const p = document.createElement('p');
@@ -127,6 +139,40 @@ function renderEntry(entry) {
       audio.controls = true;
       audio.src = URL.createObjectURL(blob);
       el.appendChild(audio);
+    });
+  }
+
+  // Swap the text for a textarea + Save/Cancel, for both voice and text entries.
+  function startEdit() {
+    const ta = document.createElement('textarea');
+    ta.className = 'entry__edit-input';
+    ta.value = entry.text || '';
+    ta.rows = 3;
+
+    const row = document.createElement('div');
+    row.className = 'entry__edit-actions';
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'primary-btn';
+    saveBtn.textContent = 'Save';
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'secondary-btn';
+    cancelBtn.textContent = 'Cancel';
+    row.append(saveBtn, cancelBtn);
+
+    p.replaceWith(ta);
+    ta.after(row);
+    ta.focus();
+    ta.setSelectionRange(ta.value.length, ta.value.length);
+
+    saveBtn.addEventListener('click', async () => {
+      await updateEntryText(entry.id, ta.value);
+      renderTimeline();
+    });
+    cancelBtn.addEventListener('click', () => {
+      ta.replaceWith(p);
+      row.remove();
     });
   }
 
