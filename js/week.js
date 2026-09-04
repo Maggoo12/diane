@@ -8,6 +8,7 @@ import {
   generateSummary,
   getApiKey, setApiKey,
   getModel, setModel,
+  getTone, setTone,
 } from './debrief.js';
 import {
   speak, stop, isSpeaking, isSpeechSupported,
@@ -113,7 +114,7 @@ function wireSettingsPanel(onDataChange) {
   const buildEl = $('build-number');
   if (buildEl) buildEl.textContent = `Build ${BUILD}`;
   const el = {
-    apiKey: $('set-apikey'), model: $('set-model'),
+    apiKey: $('set-apikey'), model: $('set-model'), tone: $('set-tone'),
     groqKey: $('set-groqkey'), transcribeModel: $('set-transcribe-model'),
     voice: $('set-voice'), rate: $('set-rate'), weekStart: $('set-weekstart'),
     remEnabled: $('rem-enabled'), remDaily: $('rem-daily-time'),
@@ -175,6 +176,7 @@ function wireSettingsPanel(onDataChange) {
   repopulate = () => {
     el.apiKey.value = getApiKey();
     el.model.value = getModel();
+    el.tone.value = getTone();
     el.groqKey.value = getGroqKey();
     el.transcribeModel.value = getTranscribeModel();
     el.voice.value = getVoiceURI();
@@ -190,7 +192,7 @@ function wireSettingsPanel(onDataChange) {
   };
 
   // Stage-only listeners.
-  for (const k of ['apiKey', 'model', 'groqKey', 'transcribeModel', 'voice', 'rate', 'remDaily', 'remWeeklyDay', 'remWeeklyTime']) {
+  for (const k of ['apiKey', 'model', 'tone', 'groqKey', 'transcribeModel', 'voice', 'rate', 'remDaily', 'remWeeklyDay', 'remWeeklyTime']) {
     el[k].addEventListener('input', markDirty);
     el[k].addEventListener('change', markDirty);
   }
@@ -251,6 +253,7 @@ function wireSettingsPanel(onDataChange) {
   el.save.addEventListener('click', () => {
     setApiKey(el.apiKey.value);
     setModel(el.model.value);
+    setTone(el.tone.value);
     setGroqKey(el.groqKey.value);
     setTranscribeModel(el.transcribeModel.value);
     setVoiceURI(el.voice.value);
