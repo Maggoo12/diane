@@ -218,6 +218,49 @@ details[open] > .card__title { margin-bottom: var(--gap); }
 .debrief-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .debrief-status { color: var(--text-dim); font-size: 0.85rem; }
 
+.goal-suggestions { margin-top: 16px; padding-top: 14px; border-top: 1px solid #2b303b; }
+.goal-suggestions__title {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+}
+.goal-suggestion { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.goal-suggestion input[type="text"] {
+  flex: 1;
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid #2b303b;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 0.9rem;
+}
+.goal-suggestion__accept {
+  background: var(--accent);
+  color: #0b0d12;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.goal-suggestion__dismiss {
+  background: transparent;
+  border: 0;
+  color: var(--text-dim);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.goal-suggestion__dismiss:hover { color: var(--danger); background: var(--surface-2); }
+
 /* Settings fields ------------------------------------------------ */
 .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
 .field > span { font-size: 0.85rem; color: var(--text-dim); }

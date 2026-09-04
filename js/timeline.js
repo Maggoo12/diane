@@ -3,8 +3,9 @@
  * Also owns the search box (plain substring match, see db.searchEntries).
  */
 
-import { searchEntries, getAudio, deleteEntry, setEntryTranscript, updateEntryText } from './db.js';
+import { searchEntries, getAudio, deleteEntry, setEntryTranscript, updateEntryText, addGoal } from './db.js';
 import { transcribe, isTranscriptionConfigured } from './transcribe.js';
+import { parseGoalTrigger } from './goaltrigger.js';
 
 const entriesEl = document.getElementById('entries');
 const emptyEl = document.getElementById('empty-state');
@@ -83,6 +84,8 @@ function renderEntry(entry) {
         const text = await transcribe(blob);
         if (text) {
           await setEntryTranscript(entry.id, text);
+          const goal = parseGoalTrigger(text);
+          if (goal) await addGoal({ text: goal });
           renderTimeline();
         } else {
           retry.disabled = false;

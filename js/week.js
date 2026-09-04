@@ -6,7 +6,7 @@
 import { initGoals, renderGoals } from './goals.js';
 import { initGoalHistory, render as renderGoalHistory } from './goalhistory.js';
 import {
-  generateSummary,
+  generateSummary, weekAfter,
   getApiKey, setApiKey,
   getModel, setModel,
   getTone, setTone,
@@ -20,7 +20,7 @@ import {
   getTranscribeModel, setTranscribeModel,
 } from './transcribe.js';
 import { seedDatabase } from './seed.js';
-import { clearAll, getWeekStart, setWeekStart } from './db.js';
+import { clearAll, getWeekStart, setWeekStart, addGoal } from './db.js';
 import { BUILD } from './version.js';
 import { exportBackup, importBackup, downloadBlob } from './backup.js';
 import {
@@ -53,8 +53,55 @@ function wireDebrief() {
   const midBtn = document.getElementById('debrief-midweek');
   const weekBtn = document.getElementById('debrief-weekly');
   const playBtn = document.getElementById('debrief-play');
+  const goalsBox = document.getElementById('debrief-goals');
+  const goalsList = document.getElementById('debrief-goals-list');
 
   let lastText = '';
+
+  function renderSuggestedGoals(suggestions, week) {
+    goalsList.innerHTML = '';
+    if (!suggestions?.length) {
+      goalsBox.hidden = true;
+      return;
+    }
+    goalsBox.hidden = false;
+    const targetWeek = weekAfter(week);
+    for (const text of suggestions) {
+      goalsList.appendChild(renderSuggestionRow(text, targetWeek));
+    }
+  }
+
+  function renderSuggestionRow(text, targetWeek) {
+    const row = document.createElement('div');
+    row.className = 'goal-suggestion';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = text;
+
+    const accept = document.createElement('button');
+    accept.type = 'button';
+    accept.className = 'goal-suggestion__accept';
+    accept.textContent = 'Accept';
+    accept.addEventListener('click', async () => {
+      const val = input.value.trim();
+      if (!val) return;
+      accept.disabled = true;
+      await addGoal({ text: val, week: targetWeek });
+      row.remove();
+      renderGoals(); // in case targetWeek is the current week already
+    });
+
+    const dismiss = document.createElement('button');
+    dismiss.type = 'button';
+    dismiss.className = 'goal-suggestion__dismiss';
+    dismiss.textContent = '×';
+    dismiss.setAttribute('aria-label', 'Dismiss suggestion');
+    dismiss.addEventListener('click', () => row.remove());
+
+    row.append(input, accept, dismiss);
+    return row;
+  }
 
   async function run(mode) {
     midBtn.disabled = weekBtn.disabled = true;
@@ -62,8 +109,9 @@ function wireDebrief() {
     stop();
     out.textContent = '';
     status.textContent = 'Thinking…';
+    renderSuggestedGoals([]);
     try {
-      const { text, source } = await generateSummary({ mode });
+      const { text, source, week, suggestedGoals } = await generateSummary({ mode });
       lastText = text;
       out.textContent = text;
       status.textContent =
@@ -71,6 +119,7 @@ function wireDebrief() {
         : source === 'empty' ? ''
         : '';
       playBtn.disabled = !text || !isSpeechSupported();
+      renderSuggestedGoals(suggestedGoals, week);
     } catch (err) {
       status.textContent = err.message || String(err);
     } finally {

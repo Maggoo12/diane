@@ -55,6 +55,8 @@
         <button id="text-save" class="primary-btn">Save entry</button>
         <p id="text-hint" class="capture-hint"></p>
       </div>
+
+      <p id="capture-status" class="capture-hint" aria-live="polite"></p>
     </section>
 
     <!-- TIMELINE ---------------------------------------------------- -->
@@ -96,6 +98,10 @@
       <div class="debrief-foot">
         <button id="debrief-play" class="primary-btn" disabled>▶ Play</button>
         <span id="debrief-status" class="debrief-status" aria-live="polite"></span>
+      </div>
+      <div id="debrief-goals" class="goal-suggestions" hidden>
+        <h3 class="goal-suggestions__title">Suggested goals for next week</h3>
+        <div id="debrief-goals-list"></div>
       </div>
     </section>
   </main>

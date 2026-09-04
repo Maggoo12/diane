@@ -61,6 +61,13 @@ export async function collectWeek(week = weekOf()) {
   return { week, entries, goals };
 }
 
+/** The week immediately following `week` — where accepted goal suggestions land. */
+export function weekAfter(week) {
+  const d = new Date(`${week}T00:00:00`);
+  d.setDate(d.getDate() + 7);
+  return weekOf(d);
+}
+
 // --- prompt --------------------------------------------------------
 const SYSTEM_BASE = `You are Diane, the voice of a personal journal. Once a week you narrate a short spoken debrief of how the user's week went, working only from the journal entries and goals they give you.
 
@@ -85,9 +92,13 @@ const MIDWEEK_NOTE = `
 
 This request is a MID-WEEK check-in, not an end-of-week recap. The week is not over. Frame it as "here is where things stand", point at what is still open with time to act on it, and keep it brief — 120-200 words. Keep the tone above; if a stated intention has not happened yet and there is still time, nudge them about it.`;
 
+const GOALS_NOTE = `
+
+After the debrief text, on its own line write exactly ---GOALS--- and nothing else on that line. Then list 0 to 4 goals worth carrying into the COMING week — things mentioned this week that seem to matter but are not resolved. One per line, each starting with "- ". Only suggest something with real signal in the entries; it is fine to suggest none, in which case write nothing after the marker. Never mention this marker or these goals inside the spoken debrief text itself.`;
+
 function buildSystem(mode) {
   const s = `${SYSTEM_BASE}\n\n${TONES[getTone()] || TONES.warm}`;
-  return mode === 'midweek' ? s + MIDWEEK_NOTE : s;
+  return mode === 'midweek' ? s + MIDWEEK_NOTE : s + GOALS_NOTE;
 }
 
 function fmtWhen(iso) {
@@ -124,7 +135,7 @@ function buildUserMessage({ week, entries, goals }, mode) {
 // --- the engine --------------------------------------------------
 /**
  * @param {{ mode?: 'weekly'|'midweek', week?: string }} opts
- * @returns {Promise<{ text: string, source: 'claude'|'local'|'empty' }>}
+ * @returns {Promise<{ text: string, source: 'claude'|'local'|'empty', week: string, suggestedGoals: string[] }>}
  */
 export async function generateSummary({ mode = 'weekly', week = weekOf() } = {}) {
   const data = await collectWeek(week);
@@ -132,17 +143,19 @@ export async function generateSummary({ mode = 'weekly', week = weekOf() } = {})
   if (!data.entries.length) {
     return {
       source: 'empty',
+      week,
+      suggestedGoals: [],
       text: "There aren't any entries for this week yet, so there's nothing to look back on. Come back once you've written a few.",
     };
   }
 
   const apiKey = getApiKey();
   if (!apiKey) {
-    return { source: 'local', text: localSummary(data, mode) };
+    return { source: 'local', week, suggestedGoals: [], text: localSummary(data, mode) };
   }
 
-  const text = await callClaude({ apiKey, model: getModel(), data, mode });
-  return { source: 'claude', text };
+  const { text, suggestedGoals } = await callClaude({ apiKey, model: getModel(), data, mode });
+  return { source: 'claude', week, text, suggestedGoals: mode === 'weekly' ? suggestedGoals : [] };
 }
 
 async function callClaude({ apiKey, model, data, mode }) {
@@ -182,13 +195,30 @@ async function callClaude({ apiKey, model, data, mode }) {
   }
 
   const json = await res.json();
-  const text = (json.content || [])
+  const raw = (json.content || [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
     .join('\n')
     .trim();
-  if (!text) throw new Error('Claude returned an empty response.');
-  return text;
+  if (!raw) throw new Error('Claude returned an empty response.');
+  return parseGoalsMarker(raw);
+}
+
+const GOALS_MARKER = '---GOALS---';
+
+/** Split the response into the spoken text and any suggested-goals lines. */
+function parseGoalsMarker(raw) {
+  const idx = raw.indexOf(GOALS_MARKER);
+  if (idx === -1) return { text: raw, suggestedGoals: [] };
+  const text = raw.slice(0, idx).trim();
+  const suggestedGoals = raw
+    .slice(idx + GOALS_MARKER.length)
+    .split('\n')
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith('- '))
+    .map((l) => l.slice(2).trim())
+    .filter(Boolean);
+  return { text, suggestedGoals };
 }
 
 // --- no-API fallback ------------------------------------------------

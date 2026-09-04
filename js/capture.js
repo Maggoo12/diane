@@ -17,8 +17,9 @@
  * buzz on save, and it must still save something if transcription fails.
  */
 
-import { addEntry, setEntryTranscript } from './db.js';
+import { addEntry, setEntryTranscript, addGoal } from './db.js';
 import { transcribe, isTranscriptionConfigured } from './transcribe.js';
+import { parseGoalTrigger } from './goaltrigger.js';
 
 /**
  * Wire up the voice + text capture UI.
@@ -33,6 +34,22 @@ export function initCapture(onSaved) {
   const modeText = document.getElementById('mode-text');
   const voicePane = document.getElementById('voice-pane');
   const textPane = document.getElementById('text-pane');
+  const statusEl = document.getElementById('capture-status');
+
+  // "Add a goal to X" / "remind me to X" — an explicit command, so it creates
+  // the goal right away (no LLM, see goaltrigger.js). The entry itself still
+  // saves normally either way.
+  let statusTimer = null;
+  async function checkGoalTrigger(text) {
+    const goal = parseGoalTrigger(text);
+    if (!goal) return;
+    await addGoal({ text: goal });
+    if (statusEl) {
+      clearTimeout(statusTimer);
+      statusEl.textContent = `✓ Added goal: "${goal}"`;
+      statusTimer = setTimeout(() => { statusEl.textContent = ''; }, 5000);
+    }
+  }
 
   // --- mode toggle -------------------------------------------------------
   function setMode(mode) {
@@ -68,6 +85,7 @@ export function initCapture(onSaved) {
     textInput.value = '';
     buzz();
     onSaved?.();
+    checkGoalTrigger(text);
   }
 
   textSave.addEventListener('click', saveText);
@@ -165,6 +183,7 @@ export function initCapture(onSaved) {
       if (text) {
         await setEntryTranscript(entry.id, text);
         onSaved?.();
+        checkGoalTrigger(text);
       }
       liveEl.textContent = '';
     } catch (err) {
