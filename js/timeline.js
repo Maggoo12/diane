@@ -3,7 +3,7 @@
  * Also owns the search box (plain substring match, see db.searchEntries).
  */
 
-import { searchEntries, getAudio, deleteEntry, setEntryTranscript, updateEntryText, addGoal, getGoals, completeGoal, weekOf } from './db.js';
+import { searchEntries, getAudio, deleteEntry, setEntryTranscript, updateEntryText, setEntryGoalAction, addGoal, getAllGoals, completeGoal } from './db.js';
 import { transcribe, isTranscriptionConfigured } from './transcribe.js';
 import { parseGoalTrigger, parseGoalCompletion, findMatchingGoal } from './goaltrigger.js';
 
@@ -21,6 +21,28 @@ const timeFmt = new Intl.DateTimeFormat(undefined, {
 
 function dayKey(iso) {
   return iso.slice(0, 10); // YYYY-MM-DD — groups entries by calendar day
+}
+
+// Shared by the retry (↻) button, and by editing an entry's text — re-check
+// whatever the text now says for an explicit goal command and tag the entry
+// with the result. Never undoes a goal a *previous* check already created or
+// completed; it only acts on what the current text says.
+async function checkGoalCommandsFor(entryId, text) {
+  const completionPhrase = parseGoalCompletion(text);
+  if (completionPhrase) {
+    const undone = (await getAllGoals()).filter((g) => !g.done);
+    const match = findMatchingGoal(completionPhrase, undone);
+    if (match) {
+      await completeGoal(match.id);
+      await setEntryGoalAction(entryId, { type: 'completed', text: match.text });
+    }
+    return;
+  }
+  const goal = parseGoalTrigger(text);
+  if (goal) {
+    const created = await addGoal({ text: goal });
+    await setEntryGoalAction(entryId, { type: 'added', text: created.text });
+  }
 }
 
 // Render -----------------------------------------------------------------
@@ -84,14 +106,7 @@ function renderEntry(entry) {
         const text = await transcribe(blob);
         if (text) {
           await setEntryTranscript(entry.id, text);
-          const completionPhrase = parseGoalCompletion(text);
-          if (completionPhrase) {
-            const match = findMatchingGoal(completionPhrase, await getGoals(weekOf()));
-            if (match) await completeGoal(match.id);
-          } else {
-            const goal = parseGoalTrigger(text);
-            if (goal) await addGoal({ text: goal });
-          }
+          await checkGoalCommandsFor(entry.id, text);
           renderTimeline();
         } else {
           retry.disabled = false;
@@ -105,6 +120,14 @@ function renderEntry(entry) {
       }
     });
     meta.appendChild(retry);
+  }
+
+  if (entry.goalAction) {
+    const tag = document.createElement('span');
+    tag.className = 'entry__badge entry__badge--goal';
+    tag.textContent = entry.goalAction.type === 'completed' ? '✓ Goal completed' : '+ Goal added';
+    tag.title = entry.goalAction.text || '';
+    meta.appendChild(tag);
   }
 
   // Edit + delete, grouped and pushed to the right (see .entry__meta-actions).
@@ -176,7 +199,12 @@ function renderEntry(entry) {
     ta.setSelectionRange(ta.value.length, ta.value.length);
 
     saveBtn.addEventListener('click', async () => {
-      await updateEntryText(entry.id, ta.value);
+      const newText = ta.value;
+      const changed = newText.trim() !== (entry.text || '').trim();
+      await updateEntryText(entry.id, newText);
+      // Only re-check on an actual edit — re-checking unchanged text on a
+      // repeat Save would create a duplicate goal every time.
+      if (changed) await checkGoalCommandsFor(entry.id, newText);
       renderTimeline();
     });
     cancelBtn.addEventListener('click', () => {

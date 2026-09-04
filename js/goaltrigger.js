@@ -10,22 +10,49 @@
  * suggestions and completion detection instead (see debrief.js).
  */
 
-const CREATE_PATTERNS = [
-  /^(?:please\s+)?add (?:a |another )?goal(?:\s*(?:to|:|-)\s*|\s+)(.+)$/i,
+// Matches "add a goal to X" / "add another goal: X" / "add to goals X" /
+// "add goal, X" / "add goal. X" — anything shaped like "add ... goal(s)"
+// near the start, in whatever order and with whatever connector word or
+// punctuation Whisper happens to transcribe between "goal" and the actual
+// text. Deliberately loose here; stripLeadingConnector() below cleans up
+// whatever's left, rather than requiring one exact connector shape (a
+// stricter regex is what silently dropped several of Magnus's real
+// transcriptions — "add to goals X", "add goal, X", "add goal. X").
+const ADD_GOAL_RE = /^(?:please\s+)?add\s+(?:a\s+|another\s+|to\s+|this\s+|my\s+)*goals?\b\s*(.*)$/i;
+
+// Other explicit creation shapes — these already extract cleanly, no
+// leftover connector word to strip.
+const OTHER_CREATE_PATTERNS = [
   /^(?:please\s+)?remind me to\s+(.+)$/i,
   /^new goal\s*[:\-]\s*(.+)$/i,
   /^goal\s*[:\-]\s*(.+)$/i,
 ];
 
-// Checked before CREATE_PATTERNS — "goal: X completed" would otherwise also
-// match the last create pattern above and create a garbled new goal instead
-// of completing the existing one.
+// Checked before the create patterns — "goal: X completed" would otherwise
+// also match "goal: X" above and create a garbled new goal instead of
+// completing the existing one.
 const COMPLETE_PATTERNS = [
   /^(?:mark\s+)?goal\s+(.+?)\s+(?:as\s+)?(?:completed|complete|done)\.?$/i,
   /^complete(?:d)?\s+(?:the\s+)?goal\s*[:\-]?\s*(.+)$/i,
   /^finish(?:ed)?\s+(?:the\s+)?goal\s*[:\-]?\s*(.+)$/i,
   /^goal\s*[:\-]\s*(.+?)\s+(?:completed|complete|done)\.?$/i,
 ];
+
+// Strips whatever's sitting between "goal" and the actual goal text: leading
+// punctuation ("Add goal, X" / "Add goal. X") and connector words ("of",
+// "for", "to", "is", "that is (to)"). Loops so a compound like "is to run a
+// marathon" reduces all the way down to "run a marathon", not just one pass.
+function stripLeadingConnector(s) {
+  let out = (s || '').replace(/^[\s,.:;!-]+/, '');
+  let prev;
+  do {
+    prev = out;
+    out = out
+      .replace(/^(?:that\s+is\s+to|that\s+is|to|of|for|is)\s+/i, '')
+      .replace(/^[\s,.:;!-]+/, '');
+  } while (out !== prev && out.length);
+  return out.trim();
+}
 
 function firstMatch(patterns, t) {
   for (const re of patterns) {
@@ -43,7 +70,15 @@ function firstMatch(patterns, t) {
  */
 export function parseGoalTrigger(text) {
   const t = (text || '').trim();
-  return t ? firstMatch(CREATE_PATTERNS, t) : null;
+  if (!t) return null;
+
+  const addMatch = t.match(ADD_GOAL_RE);
+  if (addMatch) {
+    const phrase = stripLeadingConnector(addMatch[1]).replace(/[.!]+$/, '').trim();
+    return phrase && phrase.length > 1 ? phrase : null;
+  }
+
+  return firstMatch(OTHER_CREATE_PATTERNS, t);
 }
 
 /**
@@ -68,6 +103,11 @@ function normWords(s) {
  * Find the goal a spoken completion phrase most likely refers to. Word-overlap
  * scoring, not exact text — deliberately conservative: returns null rather
  * than guess when nothing stands out clearly.
+ *
+ * Callers should pass every not-yet-done goal, not just this week's — a
+ * spoken "complete goal X" has no natural way to say which week it was set
+ * in, and an unfinished goal easily ages into a past week before you get
+ * round to it.
  * @param {string} phrase
  * @param {{id, text}[]} goals
  * @returns {{id, text}|null}

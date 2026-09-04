@@ -1,12 +1,20 @@
 /*
  * goalhistory.js — past weeks' goals, read from db but not editable-by-week
- * scoping the way goals.js is. Same tick/delete behaviour, just grouped by
- * week and collapsed by default so it doesn't crowd the current week.
+ * scoping the way goals.js is. Same row (tick/edit/delete) via goals.js's
+ * shared renderGoalRow, grouped by week and collapsed by default so it
+ * doesn't crowd the current week — plus a per-week "Complete all" / Undo,
+ * for the common case: an old goal you actually did but never told Diane.
  */
 
-import { getAllGoals, toggleGoal, deleteGoal, weekOf, weekAfter } from './db.js';
+import { getAllGoals, completeGoal, setGoalDone, weekOf, weekAfter } from './db.js';
+import { renderGoalRow } from './goals.js';
 
 let containerEl = null;
+
+// week -> array of goal ids the last "Complete all" click for that week
+// touched, so a follow-up "Undo" restores exactly those. In memory only,
+// same lifetime as the goals panels' bulk state.
+const bulkByWeek = new Map();
 
 export function initGoalHistory() {
   containerEl = document.getElementById('goal-history');
@@ -15,6 +23,13 @@ export function initGoalHistory() {
 
 export async function render() {
   if (!containerEl) return;
+
+  // Rebuilding the <details> elements below would otherwise collapse
+  // whichever weeks the user had open — remember them first.
+  const openWeeks = new Set(
+    [...containerEl.querySelectorAll('details[open]')].map((d) => d.dataset.week)
+  );
+
   const all = await getAllGoals();
   const currentWeek = weekOf();
   const nextWeek = weekAfter(currentWeek);
@@ -45,13 +60,46 @@ export async function render() {
 
     const details = document.createElement('details');
     details.className = 'week-history';
+    details.dataset.week = week;
+    if (openWeeks.has(week)) details.open = true;
+
     const summary = document.createElement('summary');
     summary.textContent = `Week of ${fmtWeek(week)} — ${done}/${goals.length} done`;
     details.appendChild(summary);
 
+    const bulkRow = document.createElement('div');
+    bulkRow.className = 'card__subactions';
+    const bulkBtn = document.createElement('button');
+    bulkBtn.type = 'button';
+    bulkBtn.className = 'goal-bulk-btn';
+    bulkRow.appendChild(bulkBtn);
+    details.appendChild(bulkRow);
+
+    function updateBulkBtn() {
+      const ids = bulkByWeek.get(week);
+      bulkBtn.classList.toggle('is-undo', !!ids);
+      bulkBtn.textContent = ids ? 'Undo' : 'Complete all';
+      bulkBtn.disabled = !ids && !goals.some((g) => !g.done);
+    }
+    updateBulkBtn();
+
+    bulkBtn.addEventListener('click', async () => {
+      const ids = bulkByWeek.get(week);
+      if (ids) {
+        for (const id of ids) await setGoalDone(id, false);
+        bulkByWeek.delete(week);
+      } else {
+        const undone = goals.filter((g) => !g.done);
+        if (!undone.length) return;
+        bulkByWeek.set(week, undone.map((g) => g.id));
+        for (const g of undone) await completeGoal(g.id);
+      }
+      render();
+    });
+
     const list = document.createElement('div');
     list.className = 'goals-list';
-    for (const g of goals) list.appendChild(renderGoal(g));
+    for (const g of goals) list.appendChild(renderGoalRow(g, render));
     details.appendChild(list);
 
     containerEl.appendChild(details);
@@ -60,36 +108,4 @@ export async function render() {
 
 function fmtWeek(week) {
   return new Date(`${week}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function renderGoal(g) {
-  const row = document.createElement('label');
-  row.className = 'goal' + (g.done ? ' is-done' : '');
-
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.checked = g.done;
-  cb.addEventListener('change', async () => {
-    await toggleGoal(g.id);
-    render();
-  });
-
-  const span = document.createElement('span');
-  span.className = 'goal__text';
-  span.textContent = g.text;
-
-  const del = document.createElement('button');
-  del.type = 'button';
-  del.className = 'goal__delete';
-  del.textContent = '×';
-  del.setAttribute('aria-label', 'Delete goal');
-  del.addEventListener('click', async (e) => {
-    e.preventDefault();
-    if (!confirm('Delete this goal?')) return;
-    await deleteGoal(g.id);
-    render();
-  });
-
-  row.append(cb, span, del);
-  return row;
 }

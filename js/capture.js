@@ -17,7 +17,7 @@
  * buzz on save, and it must still save something if transcription fails.
  */
 
-import { addEntry, setEntryTranscript, addGoal, getGoals, completeGoal, weekOf } from './db.js';
+import { addEntry, setEntryTranscript, setEntryGoalAction, addGoal, getAllGoals, completeGoal } from './db.js';
 import { transcribe, isTranscriptionConfigured } from './transcribe.js';
 import { parseGoalTrigger, parseGoalCompletion, findMatchingGoal } from './goaltrigger.js';
 
@@ -48,23 +48,35 @@ export function initCapture(onSaved) {
     statusTimer = setTimeout(() => { statusEl.textContent = ''; }, 5000);
   }
 
-  async function checkGoalCommands(text) {
+  async function checkGoalCommands(text, entryId) {
     const completionPhrase = parseGoalCompletion(text);
     if (completionPhrase) {
-      const match = findMatchingGoal(completionPhrase, await getGoals(weekOf()));
+      // Any not-yet-done goal, any week — a spoken "complete goal X" has no
+      // way to say which week, and an unfinished goal easily ages into a
+      // past week before you get round to it.
+      const undone = (await getAllGoals()).filter((g) => !g.done);
+      const match = findMatchingGoal(completionPhrase, undone);
       if (match) {
         await completeGoal(match.id);
         showCaptureStatus(`✓ Marked done: "${match.text}"`);
+        if (entryId) {
+          await setEntryGoalAction(entryId, { type: 'completed', text: match.text });
+          onSaved?.();
+        }
       } else {
-        showCaptureStatus(`Heard a goal-completed command but couldn't match it to a goal.`);
+        showCaptureStatus(`Heard "${completionPhrase}" as a goal-completed command but couldn't match it to a goal.`);
       }
       return;
     }
 
     const goal = parseGoalTrigger(text);
     if (goal) {
-      await addGoal({ text: goal });
-      showCaptureStatus(`✓ Added goal: "${goal}"`);
+      const created = await addGoal({ text: goal });
+      showCaptureStatus(`✓ Added goal: "${created.text}"`);
+      if (entryId) {
+        await setEntryGoalAction(entryId, { type: 'added', text: created.text });
+        onSaved?.();
+      }
     }
   }
 
@@ -98,11 +110,11 @@ export function initCapture(onSaved) {
   async function saveText() {
     const text = textInput.value.trim();
     if (!text) return;
-    await addEntry({ text, source: 'text' });
+    const entry = await addEntry({ text, source: 'text' });
     textInput.value = '';
     buzz();
     onSaved?.();
-    checkGoalCommands(text);
+    checkGoalCommands(text, entry.id);
   }
 
   textSave.addEventListener('click', saveText);
@@ -200,7 +212,7 @@ export function initCapture(onSaved) {
       if (text) {
         await setEntryTranscript(entry.id, text);
         onSaved?.();
-        checkGoalCommands(text);
+        checkGoalCommands(text, entry.id);
       }
       liveEl.textContent = '';
     } catch (err) {

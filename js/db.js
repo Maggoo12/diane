@@ -136,6 +136,25 @@ export async function updateEntryText(id, text) {
 }
 
 /**
+ * Tag an entry with the goal action it triggered (or clear it), so the
+ * timeline can show a small "Goal added" / "Goal completed" badge instead of
+ * only a transient status message.
+ * @param {string} id
+ * @param {{type: 'added'|'completed', text: string}|null} action
+ */
+export async function setEntryGoalAction(id, action) {
+  const db = await openDB();
+  const tx = db.transaction('entries', 'readwrite');
+  const store = tx.objectStore('entries');
+  const entry = await promisify(store.get(id));
+  if (entry) {
+    entry.goalAction = action;
+    store.put(entry);
+  }
+  await txDone(tx);
+}
+
+/**
  * Fill in (or replace) an entry's transcript and mark it done.
  * Used after a voice entry's audio comes back from the transcription API.
  */
@@ -292,6 +311,33 @@ export async function completeGoal(id) {
   const goal = await promisify(store.get(id));
   if (goal && !goal.done) {
     goal.done = true;
+    store.put(goal);
+  }
+  await txDone(tx);
+}
+
+/** Edit a goal's text directly, from the goals list or goal history. */
+export async function updateGoalText(id, text) {
+  const db = await openDB();
+  const tx = db.transaction('goals', 'readwrite');
+  const store = tx.objectStore('goals');
+  const goal = await promisify(store.get(id));
+  if (goal) {
+    goal.text = capitalizeFirst((text || '').trim());
+    store.put(goal);
+  }
+  await txDone(tx);
+}
+
+/** Force a goal's done flag to an exact value — unlike toggleGoal/completeGoal,
+ *  used by "Complete all" 's Undo to restore precisely the goals it touched. */
+export async function setGoalDone(id, done) {
+  const db = await openDB();
+  const tx = db.transaction('goals', 'readwrite');
+  const store = tx.objectStore('goals');
+  const goal = await promisify(store.get(id));
+  if (goal) {
+    goal.done = done;
     store.put(goal);
   }
   await txDone(tx);

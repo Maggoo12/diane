@@ -66,21 +66,43 @@ in Phase 2.
     `periodicsync`/trigger path for Chrome users; it's a bonus, not the plan.
   - Diagnostics kept in Settings: "Send test notification", "Fire reminder
     now", "Diagnose" (prints every gate + a would-fire verdict).
-- [x] **Goals input.** `js/goals.js` — add / tick / delete, scoped to the
-      current week (`db.weekOf`). Lives in the Week view.
+- [x] **Goals input.** `js/goals.js` — add / tick / edit / delete, scoped to
+      the current week (`db.weekOf`). Lives in the Week view, above the "This
+      week's goals" card is "Next week's goals" (edited order — next week
+      first, since that's usually the one you're adding to right after a
+      debrief).
+  - [x] **Editable goals.** Same ✎ → text field → Save/Cancel pattern as
+        journal entries, on This week's, Next week's, and every Past week
+        block (all three share `goals.js`'s `renderGoalRow`).
+  - [x] **"Complete all" / Undo.** One bulk button per goals card (This week,
+        Next week, each Past week) that ticks off every not-yet-done goal in
+        that card; a second click ("Undo") restores exactly the goals it
+        touched — never one you'd ticked yourself, before or since. Session
+        memory only, not persisted. Mainly for the common case: an old
+        unfinished goal you actually did but never told Diane about.
   - [x] **Past-weeks view.** `js/goalhistory.js` — a collapsed "Past weeks'
         goals" card, grouped by week (newest first) with a done-count summary;
-        same tick/delete as the current week.
+        same tick/edit/delete/complete-all as the current week. Expanded weeks
+        now stay expanded across re-renders (was re-collapsing on every tick).
   - [x] **Next-weeks view.** A matching collapsed "Next week's goals" card
-        (`db.weekAfter`) — add/tick/delete like the current week, and where
-        accepted debrief suggestions land and stay visible instead of
+        (`db.weekAfter`) — add/tick/edit/delete like the current week, and
+        where accepted debrief suggestions land and stay visible instead of
         disappearing until the week rolls over.
   - [x] **AI-suggested goals.** Two mechanisms, deliberately split:
     - **Explicit trigger** (`js/goaltrigger.js`) — "add a goal to X" / "remind
       me to X" / "new goal: X". Plain phrase match, no LLM, so it never adds
       latency to capture; creates the goal immediately in the current week,
       entry still saves normally. Wired into text save, voice transcription,
-      and the timeline retry.
+      the timeline retry, and — new — editing an entry re-checks whatever the
+      text now says (e.g. hand-fixing a mis-transcribed command actually
+      creates/completes the goal; doesn't re-fire on a no-op re-save of
+      unchanged text). The create-side matcher was rebuilt around one loose
+      "add ... goal(s)" pattern plus a connector-stripping pass, after several
+      real transcriptions ("add to goals X", "add goal, X", "add goal. X",
+      "add a goal of X") turned out to silently not match the old, stricter
+      regex. Entries that trigger a goal action now carry a small "Goal
+      added" / "Goal completed" tag (next to the voice/pending tags) instead
+      of only a 5-second status line.
     - **Implicit intentions** — folded into the **weekly debrief** rather than
       a separate scan (same Claude call, no extra cost/latency): it also
       returns 0-4 candidate goals drawn from the week's entries, shown as
@@ -93,8 +115,13 @@ in Phase 2.
   - [x] **Completing goals the same way.** Mirrors creation:
     - **Explicit** — "goal X completed" / "mark goal X as done" / "complete
       goal: X". No LLM: a phrase match, then a conservative word-overlap
-      matcher picks which of this week's goals it means; an ambiguous or
-      unmatched phrase does nothing and says so rather than guessing wrong.
+      matcher picks which goal it means, searched across **every not-yet-done
+      goal, any week** (not just the current week — a spoken command has no
+      way to say which week, and an unfinished goal easily ages into a past
+      week before you get round to it; this was the root cause of several
+      "couldn't match it to a goal" reports where the phrase match was
+      actually fine). An ambiguous or unmatched phrase does nothing and says
+      so rather than guessing wrong.
     - **Implicit** — the same weekly-debrief call also returns a "Looks like
       you finished these" list (goals it has real evidence for, not just a
       mention), resolved back to the exact goal record so Mark done/dismiss

@@ -69,26 +69,32 @@
 
   <!-- ================= WEEK VIEW ================= -->
   <main id="view-week" hidden>
-    <!-- GOALS ------------------------------------------------------- -->
-    <section class="card" aria-label="This week's goals">
-      <h2 class="card__title">This week's goals</h2>
-      <div class="goal-add">
-        <input id="goal-input" type="text" placeholder="Add a goal for this week" />
-        <button id="goal-add" class="primary-btn">Add</button>
-      </div>
-      <div id="goals-list" class="goals-list"></div>
-    </section>
-
     <!-- NEXT WEEK --------------------------------------------------- -->
     <section class="card" aria-label="Next week's goals">
       <details>
         <summary class="card__title">Next week's goals</summary>
+        <div class="card__subactions">
+          <button id="goal-complete-all-next" class="goal-bulk-btn" type="button" hidden>Complete all</button>
+        </div>
         <div class="goal-add">
           <input id="goal-input-next" type="text" placeholder="Add a goal for next week" />
           <button id="goal-add-next" class="primary-btn">Add</button>
         </div>
         <div id="goals-list-next" class="goals-list"></div>
       </details>
+    </section>
+
+    <!-- GOALS ------------------------------------------------------- -->
+    <section class="card" aria-label="This week's goals">
+      <div class="card__head">
+        <h2 class="card__title">This week's goals</h2>
+        <button id="goal-complete-all" class="goal-bulk-btn" type="button" hidden>Complete all</button>
+      </div>
+      <div class="goal-add">
+        <input id="goal-input" type="text" placeholder="Add a goal for this week" />
+        <button id="goal-add" class="primary-btn">Add</button>
+      </div>
+      <div id="goals-list" class="goals-list"></div>
     </section>
 
     <!-- PAST WEEKS ---------------------------------------------- -->
