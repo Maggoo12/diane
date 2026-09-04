@@ -71,6 +71,10 @@ in Phase 2.
   - [x] **Past-weeks view.** `js/goalhistory.js` — a collapsed "Past weeks'
         goals" card, grouped by week (newest first) with a done-count summary;
         same tick/delete as the current week.
+  - [x] **Next-weeks view.** A matching collapsed "Next week's goals" card
+        (`db.weekAfter`) — add/tick/delete like the current week, and where
+        accepted debrief suggestions land and stay visible instead of
+        disappearing until the week rolls over.
   - [x] **AI-suggested goals.** Two mechanisms, deliberately split:
     - **Explicit trigger** (`js/goaltrigger.js`) — "add a goal to X" / "remind
       me to X" / "new goal: X". Plain phrase match, no LLM, so it never adds
@@ -82,7 +86,10 @@ in Phase 2.
       returns 0-4 candidate goals drawn from the week's entries, shown as
       editable accept/dismiss rows under the debrief. Accepting adds the goal
       to the week *after* the one reviewed. Not offered on the midweek
-      check-in — that stays progress-only.
+      check-in — that stays progress-only. Suggestions are phrased as
+      timeless actions (never "this week"/"today") and must not duplicate a
+      goal already set for the reviewed week. New goals are capitalized
+      automatically, from any source.
 - [x] **Weekly spoken debrief.** Pipeline built end to end and confirmed on
       device — real Claude output, real TTS audio, 4 tones.
   - [x] LLM synthesis — `js/debrief.js`, Claude (Sonnet 5 default) with the
