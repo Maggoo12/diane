@@ -44,15 +44,21 @@ export function previewBar() {
   barEl.append(dailyBar(), weeklyBar());
 }
 
-function btn(label, handler, cls = 'reminder-bar__btn') {
+/** Remove just the row this node belongs to; hide the bar if it's now empty. */
+function closeRow(node) {
+  node.closest('.reminder-bar__row')?.remove();
+  if (barEl && !barEl.querySelector('.reminder-bar__row')) barEl.hidden = true;
+}
+
+function btn(label, handler) {
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = cls;
+  b.className = 'reminder-bar__btn';
   b.textContent = label;
   b.addEventListener('click', async (e) => {
     e.stopPropagation();
     await handler();
-    render();
+    closeRow(b);
   });
   return b;
 }
@@ -83,8 +89,8 @@ function weeklyBar() {
   text.textContent = '🗓️ Your weekly debrief is ready';
   text.addEventListener('click', async () => {
     await dismissReminder('weekly');
+    closeRow(text);
     onOpenWeek();
-    render();
   });
 
   const actions = document.createElement('div');
