@@ -198,54 +198,66 @@ export async function sendTestNotification() {
   }
 }
 
-/** Fire anything that came due while the app was closed. */
-export async function catchUpReminders() {
+/**
+ * Which reminders are due right now and not yet handled.
+ * Used to show an *in-app* prompt when the app is open — a system
+ * notification from a service worker is dropped or silenced by the browser
+ * while its own page is focused (and Brave doesn't render notification
+ * action buttons at all), so the reliable path when you're in the app is a
+ * banner, not a notification. The service worker still fires real
+ * notifications for the closed-app case (sw.js → fireDueReminders).
+ * @returns {Promise<Array<{kind:'daily'|'weekly'}>>}
+ */
+export async function getDueReminders() {
   const s = getReminderSettings();
-  if (!s.enabled || notificationPermission() !== 'granted') return;
-  const reg = await swReg();
-  if (!reg) return;
-
+  if (!s.enabled) return [];
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
-  const thisWeek = mondayKey(now);
+  const week = mondayKey(now);
+  const due = [];
 
-  // daily
   if (s.dailyTime) {
-    const due = dailySlot(s.dailyTime, now);
+    const slot = dailySlot(s.dailyTime, now);
     const snooze = await getMeta('rem.dailySnoozeUntil');
-    if (
-      now >= due &&
-      (await getMeta('rem.lastDaily')) !== today &&
-      (!snooze || now >= new Date(snooze))
-    ) {
-      const wroteToday = (await getAllEntries()).some((e) => e.createdAt.slice(0, 10) === today);
-      if (!wroteToday) {
-        await show(reg, DAILY);
-        await setMeta('rem.lastDaily', today); // mark done only when actually shown
-      }
+    const wrote = (await getAllEntries()).some((e) => e.createdAt.slice(0, 10) === today);
+    if (now >= slot && (await getMeta('rem.lastDaily')) !== today && !wrote
+        && (!snooze || now >= new Date(snooze))) {
+      due.push({ kind: 'daily' });
     }
   }
 
-  // weekly
-  {
-    const due = weeklySlot(s.weeklyDay, s.weeklyTime, now);
-    const snooze = await getMeta('rem.weeklySnoozeUntil');
-    if (
-      now >= due &&
-      (await getMeta('rem.lastWeekly')) !== thisWeek &&
-      (await getMeta('rem.weeklySkip')) !== thisWeek &&
-      (!snooze || now >= new Date(snooze))
-    ) {
-      await show(reg, WEEKLY);
-      await setMeta('rem.lastWeekly', thisWeek);
-    }
+  const wslot = weeklySlot(s.weeklyDay, s.weeklyTime, now);
+  const wsnooze = await getMeta('rem.weeklySnoozeUntil');
+  if (now >= wslot && (await getMeta('rem.lastWeekly')) !== week
+      && (await getMeta('rem.weeklySkip')) !== week
+      && (!wsnooze || now >= new Date(wsnooze))) {
+    due.push({ kind: 'weekly' });
   }
+  return due;
 }
 
-/** Run once at startup. */
+export async function snoozeReminder(kind, hours = 1) {
+  await setMeta(`rem.${kind}SnoozeUntil`, new Date(Date.now() + hours * 3600000).toISOString());
+}
+/** Snooze until a specific clock time today (or tomorrow if already past). */
+export async function snoozeReminderUntil(kind, hhmm) {
+  const { h, m } = parseHM(hhmm);
+  const t = new Date();
+  t.setHours(h, m, 0, 0);
+  if (t <= new Date()) t.setDate(t.getDate() + 1);
+  await setMeta(`rem.${kind}SnoozeUntil`, t.toISOString());
+}
+export async function dismissReminder(kind) {
+  if (kind === 'daily') await setMeta('rem.lastDaily', new Date().toISOString().slice(0, 10));
+  else await setMeta('rem.lastWeekly', mondayKey());
+}
+export async function skipWeeklyThisWeek() {
+  await setMeta('rem.weeklySkip', mondayKey());
+}
+
+/** Run once at startup — sets up the background (closed-app) notification path. */
 export async function initReminders() {
   if (!notificationsSupported()) return;
-  await catchUpReminders();
   await scheduleReminders();
 }
 

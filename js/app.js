@@ -12,7 +12,8 @@
  *   speak.js      swappable "narrator" seam — text -> spoken audio
  *   week.js       the Week view: goals + debrief + settings + backup + reminders
  *   backup.js     export / import the whole journal to one file
- *   reminders.js  daily + weekly local notifications
+ *   reminders.js  reminder schedule + "is one due" logic
+ *   reminderbar.js in-app due-reminder bar (postpone / skip)
  *   seed.js       synthetic sample data (dev)
  *
  * Still to build (see docs/roadmap.md, Phase 1):
@@ -23,7 +24,8 @@
 import { initCapture } from './capture.js';
 import { renderTimeline } from './timeline.js';
 import { initWeek, refreshWeek, settingsDirty, revertSettings } from './week.js';
-import { initReminders, catchUpReminders } from './reminders.js';
+import { initReminders } from './reminders.js';
+import { initReminderBar } from './reminderbar.js';
 
 function setView(name) {
   document.getElementById('view-journal').hidden = name !== 'journal';
@@ -79,14 +81,8 @@ async function main() {
     }
   }
 
-  initReminders(); // fire due reminders, schedule the next ones
-
-  // Re-check when the app is brought back to the foreground — on browsers
-  // that can't fire notifications while closed (e.g. Brave), returning to
-  // the app is the trigger.
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') catchUpReminders().catch(() => {});
-  });
+  initReminders(); // background (closed-app) notification schedule
+  initReminderBar({ openWeek: () => setView('week') }); // in-app due-reminder prompt
 }
 
 main();

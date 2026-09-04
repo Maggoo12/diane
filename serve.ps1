@@ -59,6 +59,10 @@ try {
       $bytes = [System.IO.File]::ReadAllBytes($path)
       $ctx.Response.ContentType = $ct
       $ctx.Response.Headers.Add("Service-Worker-Allowed", "/")
+      # Dev server: never let the browser HTTP-cache a file, so edits always
+      # show on a normal refresh (the network-first service worker still
+      # fetches through the HTTP cache).
+      $ctx.Response.Headers.Add("Cache-Control", "no-store, must-revalidate")
       $ctx.Response.OutputStream.Write($bytes, 0, $bytes.Length)
     } else {
       $ctx.Response.StatusCode = 404

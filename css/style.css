@@ -114,6 +114,43 @@ body {
 }
 .nav-btn.is-active { background: var(--accent); color: #0b0d12; }
 
+/* In-app reminder bar ------------------------------------------------- */
+.reminder-bar { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
+.reminder-bar__row {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.reminder-bar__text { font-size: 0.9rem; }
+.reminder-bar__text--link {
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+.reminder-bar__text--link:hover { color: var(--accent); }
+.reminder-bar__actions { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+.reminder-bar__btn {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.reminder-bar__btn:hover { background: var(--accent); color: #0b0d12; }
+
 /* Card (Week view sections) ------------------------------------------- */
 .card {
   background: var(--surface);
