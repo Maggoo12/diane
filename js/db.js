@@ -229,6 +229,18 @@ export function weekOf(date = new Date()) {
   return ymdLocal(d);
 }
 
+/** The week immediately following `week` (same alignment) — e.g. where
+ *  accepted debrief goal-suggestions and the "next week" panel live. */
+export function weekAfter(week) {
+  const d = new Date(`${week}T00:00:00`);
+  d.setDate(d.getDate() + 7);
+  return weekOf(d);
+}
+
+function capitalizeFirst(s) {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
 /** Add a goal to a given week (defaults to the current week). */
 export async function addGoal({
   text,
@@ -239,7 +251,7 @@ export async function addGoal({
   const db = await openDB();
   const goal = {
     id: makeId(),
-    text: (text || '').trim(),
+    text: capitalizeFirst((text || '').trim()),
     weekOf: week,
     done,
     createdAt,

@@ -3,7 +3,7 @@
  * Wires goals.js + debrief.js + speak.js + seed.js to the DOM.
  */
 
-import { initGoals, renderGoals } from './goals.js';
+import { initGoals, renderGoals, initNextWeekGoals, renderNextWeekGoals } from './goals.js';
 import { initGoalHistory, render as renderGoalHistory } from './goalhistory.js';
 import {
   generateSummary, weekAfter,
@@ -20,7 +20,7 @@ import {
   getTranscribeModel, setTranscribeModel,
 } from './transcribe.js';
 import { seedDatabase } from './seed.js';
-import { clearAll, getWeekStart, setWeekStart, addGoal } from './db.js';
+import { clearAll, getWeekStart, setWeekStart, addGoal, weekOf } from './db.js';
 import { BUILD } from './version.js';
 import { exportBackup, importBackup, downloadBlob } from './backup.js';
 import {
@@ -34,6 +34,7 @@ import { previewBar, render as renderReminderBar } from './reminderbar.js';
 /** @param {() => void} onDataChange fired after seeding/wiping, to refresh other views */
 export function initWeek(onDataChange) {
   initGoals();
+  initNextWeekGoals(() => weekAfter(weekOf()));
   initGoalHistory();
   wireDebrief();
   wireSettingsPanel(onDataChange);
@@ -43,6 +44,7 @@ export function initWeek(onDataChange) {
 /** Re-render the parts that can change while the view is hidden. */
 export function refreshWeek() {
   renderGoals();
+  renderNextWeekGoals();
   renderGoalHistory();
 }
 
@@ -89,7 +91,8 @@ function wireDebrief() {
       accept.disabled = true;
       await addGoal({ text: val, week: targetWeek });
       row.remove();
-      renderGoals(); // in case targetWeek is the current week already
+      renderGoals();
+      renderNextWeekGoals();
     });
 
     const dismiss = document.createElement('button');
@@ -321,6 +324,8 @@ function wireSettingsPanel(onDataChange) {
     // UI updates immediately; rescheduling notifications is a slow side-effect.
     setDirty(false);
     renderGoals();
+    renderNextWeekGoals();
+    renderGoalHistory();
     onDataChange?.();
     showRemStatus();
     el.save.textContent = 'Saved';
@@ -335,6 +340,7 @@ function wireSettingsPanel(onDataChange) {
       const { entries, goals } = await seedDatabase();
       el.devStatus.textContent = `Loaded ${entries} sample entries and ${goals} goals.`;
       renderGoals();
+      renderNextWeekGoals();
       renderGoalHistory();
       onDataChange?.();
     } catch (err) {
@@ -348,6 +354,7 @@ function wireSettingsPanel(onDataChange) {
     await clearAll();
     el.devStatus.textContent = 'All data cleared.';
     renderGoals();
+    renderNextWeekGoals();
     renderGoalHistory();
     onDataChange?.();
   });
@@ -399,6 +406,7 @@ function wireBackup(onDataChange) {
       const counts = await importBackup(file, { replace: true, onProgress: setBar });
       status.textContent = `Imported ${counts.entries} entries, ${counts.goals} goals, ${counts.audio} recordings.`;
       renderGoals();
+      renderNextWeekGoals();
       renderGoalHistory();
       onDataChange?.();
     } catch (err) {

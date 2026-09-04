@@ -10,7 +10,7 @@
  * the loop (and the TTS) is still testable.
  */
 
-import { getEntriesInRange, getGoals, weekOf } from './db.js';
+import { getEntriesInRange, getGoals, weekOf, weekAfter } from './db.js';
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const DEFAULT_MODEL = 'claude-sonnet-5';
@@ -61,12 +61,7 @@ export async function collectWeek(week = weekOf()) {
   return { week, entries, goals };
 }
 
-/** The week immediately following `week` — where accepted goal suggestions land. */
-export function weekAfter(week) {
-  const d = new Date(`${week}T00:00:00`);
-  d.setDate(d.getDate() + 7);
-  return weekOf(d);
-}
+export { weekAfter };
 
 // --- prompt --------------------------------------------------------
 const SYSTEM_BASE = `You are Diane, the voice of a personal journal. Once a week you narrate a short spoken debrief of how the user's week went, working only from the journal entries and goals they give you.
@@ -94,7 +89,11 @@ This request is a MID-WEEK check-in, not an end-of-week recap. The week is not o
 
 const GOALS_NOTE = `
 
-After the debrief text, on its own line write exactly ---GOALS--- and nothing else on that line. Then list 0 to 4 goals worth carrying into the COMING week — things mentioned this week that seem to matter but are not resolved. One per line, each starting with "- ". Only suggest something with real signal in the entries; it is fine to suggest none, in which case write nothing after the marker. Never mention this marker or these goals inside the spoken debrief text itself.`;
+After the debrief text, on its own line write exactly ---GOALS--- and nothing else on that line. Then list 0 to 4 goals worth carrying into the COMING week — things mentioned this week that seem to matter but are not resolved. One per line, each starting with "- ".
+- Phrase each as a plain, timeless action, e.g. "Book the dermatologist appointment" — never include words like "this week", "today", or "tomorrow" in the goal text; the app already places it under the correct week.
+- Do not suggest anything that duplicates or restates a goal already listed above as set for this week — if it is already a goal, leave it out here.
+- Only suggest something with real signal in the entries; it is fine to suggest none, in which case write nothing after the marker.
+Never mention this marker or these goals inside the spoken debrief text itself.`;
 
 function buildSystem(mode) {
   const s = `${SYSTEM_BASE}\n\n${TONES[getTone()] || TONES.warm}`;

@@ -4,7 +4,7 @@
  * week and collapsed by default so it doesn't crowd the current week.
  */
 
-import { getAllGoals, toggleGoal, deleteGoal, weekOf } from './db.js';
+import { getAllGoals, toggleGoal, deleteGoal, weekOf, weekAfter } from './db.js';
 
 let containerEl = null;
 
@@ -17,10 +17,14 @@ export async function render() {
   if (!containerEl) return;
   const all = await getAllGoals();
   const currentWeek = weekOf();
+  const nextWeek = weekAfter(currentWeek);
 
   const byWeek = new Map();
   for (const g of all) {
-    if (g.weekOf === currentWeek) continue; // that's the "This week's goals" card
+    // Current week has its own card; next week has its own ("Next week's
+    // goals") — this list is strictly the weeks before now.
+    if (g.weekOf === currentWeek || g.weekOf === nextWeek) continue;
+    if (g.weekOf > currentWeek) continue; // any other future week — shouldn't happen yet, but don't mislabel it "past"
     if (!byWeek.has(g.weekOf)) byWeek.set(g.weekOf, []);
     byWeek.get(g.weekOf).push(g);
   }
