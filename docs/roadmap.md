@@ -71,12 +71,18 @@ in Phase 2.
   - [x] **Past-weeks view.** `js/goalhistory.js` — a collapsed "Past weeks'
         goals" card, grouped by week (newest first) with a done-count summary;
         same tick/delete as the current week.
-  - [ ] **AI-suggested goals.** At the start of a week, Diane reads recent
-        entries and proposes candidate goals ("you've mentioned the
-        dermatologist three times — make it a goal?"). Shown as tap-to-accept
-        chips — nothing is added to the real goal list until accepted, and the
-        wording can be edited first. Same LLM pipe as the debrief. Manual entry
-        stays the base.
+  - [x] **AI-suggested goals.** Two mechanisms, deliberately split:
+    - **Explicit trigger** (`js/goaltrigger.js`) — "add a goal to X" / "remind
+      me to X" / "new goal: X". Plain phrase match, no LLM, so it never adds
+      latency to capture; creates the goal immediately in the current week,
+      entry still saves normally. Wired into text save, voice transcription,
+      and the timeline retry.
+    - **Implicit intentions** — folded into the **weekly debrief** rather than
+      a separate scan (same Claude call, no extra cost/latency): it also
+      returns 0-4 candidate goals drawn from the week's entries, shown as
+      editable accept/dismiss rows under the debrief. Accepting adds the goal
+      to the week *after* the one reviewed. Not offered on the midweek
+      check-in — that stays progress-only.
 - [x] **Weekly spoken debrief.** Pipeline built end to end and confirmed on
       device — real Claude output, real TTS audio, 4 tones.
   - [x] LLM synthesis — `js/debrief.js`, Claude (Sonnet 5 default) with the
