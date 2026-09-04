@@ -19,6 +19,7 @@ import {
 } from './transcribe.js';
 import { seedDatabase } from './seed.js';
 import { clearAll, getWeekStart, setWeekStart } from './db.js';
+import { BUILD } from './version.js';
 import { exportBackup, importBackup, downloadBlob } from './backup.js';
 import {
   getReminderSettings, setReminderSettings,
@@ -107,6 +108,8 @@ export function revertSettings() { repopulate(); }
 
 function wireSettingsPanel(onDataChange) {
   const $ = (id) => document.getElementById(id);
+  const buildEl = $('build-number');
+  if (buildEl) buildEl.textContent = `Build ${BUILD}`;
   const el = {
     apiKey: $('set-apikey'), model: $('set-model'),
     groqKey: $('set-groqkey'), transcribeModel: $('set-transcribe-model'),

@@ -91,12 +91,12 @@ body {
 .settings-panel__foot {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 12px;
   padding: 12px 16px calc(env(safe-area-inset-bottom) + 12px);
   border-top: 1px solid #2b303b;
   background: var(--surface);
 }
+#build-number { margin-right: auto; } /* keep it left, Save stays right */
 #settings-save[disabled] { opacity: 0.5; }
 
 /* Nav ------------------------------------------------------------------- */
