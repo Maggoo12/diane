@@ -219,8 +219,10 @@ export async function catchUpReminders() {
       (!snooze || now >= new Date(snooze))
     ) {
       const wroteToday = (await getAllEntries()).some((e) => e.createdAt.slice(0, 10) === today);
-      if (!wroteToday) await show(reg, DAILY);
-      await setMeta('rem.lastDaily', today);
+      if (!wroteToday) {
+        await show(reg, DAILY);
+        await setMeta('rem.lastDaily', today); // mark done only when actually shown
+      }
     }
   }
 
@@ -245,4 +247,63 @@ export async function initReminders() {
   if (!notificationsSupported()) return;
   await catchUpReminders();
   await scheduleReminders();
+}
+
+/** A plain-text readout of every gate the daily/weekly check goes through. */
+export async function explainReminders() {
+  const s = getReminderSettings();
+  const reg = await swReg();
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const lines = [
+    `enabled (saved): ${s.enabled}`,
+    `permission: ${notificationPermission()}`,
+    `service worker ready: ${!!reg}`,
+    `Notification Triggers: ${CAN_TRIGGER}`,
+    `now: ${now.toLocaleString()}`,
+  ];
+
+  if (s.dailyTime) {
+    const due = dailySlot(s.dailyTime, now);
+    const last = await getMeta('rem.lastDaily');
+    const wrote = (await getAllEntries()).some((e) => e.createdAt.slice(0, 10) === today);
+    const snooze = await getMeta('rem.dailySnoozeUntil');
+    const wouldFire = s.enabled && notificationPermission() === 'granted' && !!reg
+      && now >= due && last !== today && !wrote && (!snooze || now >= new Date(snooze));
+    lines.push(
+      '',
+      `DAILY  set for ${s.dailyTime}`,
+      `  time passed today: ${now >= due}`,
+      `  already fired today: ${last === today}`,
+      `  wrote an entry today: ${wrote}`,
+      `  snoozed: ${snooze ? `until ${new Date(snooze).toLocaleString()}` : 'no'}`,
+      `  → would fire on next check: ${wouldFire}`,
+    );
+  } else {
+    lines.push('', 'DAILY  not set');
+  }
+
+  const wdue = weeklySlot(s.weeklyDay, s.weeklyTime, now);
+  const wlast = await getMeta('rem.lastWeekly');
+  const wskip = await getMeta('rem.weeklySkip');
+  const week = mondayKey(now);
+  lines.push(
+    '',
+    `WEEKLY  ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][s.weeklyDay]} ${s.weeklyTime}`,
+    `  slot this week: ${wdue.toLocaleString()}`,
+    `  time passed: ${now >= wdue}`,
+    `  already fired this week: ${wlast === week}`,
+    `  skipped this week: ${wskip === week}`,
+    `  → would fire on next check: ${s.enabled && notificationPermission() === 'granted' && !!reg && now >= wdue && wlast !== week && wskip !== week}`,
+  );
+  return lines.join('\n');
+}
+
+/** Force-show a reminder now, bypassing every gate — for testing content/actions. */
+export async function fireReminderNow(kind = 'daily') {
+  const reg = await swReg();
+  const spec = kind === 'weekly' ? WEEKLY : DAILY;
+  if (reg) await show(reg, spec);
+  else if ('Notification' in window) new Notification(spec.title, { body: spec.body });
+  else throw new Error('Notifications unavailable.');
 }

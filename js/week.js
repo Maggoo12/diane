@@ -23,7 +23,7 @@ import { exportBackup, importBackup, downloadBlob } from './backup.js';
 import {
   getReminderSettings, setReminderSettings,
   notificationsSupported, notificationPermission, requestNotificationPermission,
-  scheduleReminders, sendTestNotification,
+  scheduleReminders, sendTestNotification, explainReminders, fireReminderNow,
 } from './reminders.js';
 
 /** @param {() => void} onDataChange fired after seeding/wiping, to refresh other views */
@@ -114,6 +114,7 @@ function wireSettingsPanel(onDataChange) {
     remEnabled: $('rem-enabled'), remDaily: $('rem-daily-time'),
     remWeeklyDay: $('rem-weekly-day'), remWeeklyTime: $('rem-weekly-time'),
     remStatus: $('rem-status'), remTest: $('rem-test'),
+    remFire: $('rem-fire'), remDiag: $('rem-diag'), remDiagOut: $('rem-diag-out'),
     save: $('settings-save'), dirtyLbl: $('settings-dirty'),
     seed: $('set-seed'), wipe: $('set-wipe'), devStatus: $('settings-status'),
   };
@@ -205,6 +206,26 @@ function wireSettingsPanel(onDataChange) {
       el.remStatus.textContent = 'Test sent. If nothing appeared, check this app\'s notification permission in your OS settings.';
     } catch (err) {
       el.remStatus.textContent = err.message || String(err);
+    }
+  });
+
+  el.remFire.addEventListener('click', async () => {
+    el.remStatus.textContent = 'Firing the daily reminder now (bypasses all checks)…';
+    try {
+      await fireReminderNow('daily');
+      el.remStatus.textContent = 'Fired. You should see "Anything worth logging today?" with Snooze / Open.';
+    } catch (err) {
+      el.remStatus.textContent = err.message || String(err);
+    }
+  });
+
+  el.remDiag.addEventListener('click', async () => {
+    el.remDiagOut.hidden = false;
+    el.remDiagOut.textContent = 'Checking…';
+    try {
+      el.remDiagOut.textContent = await explainReminders();
+    } catch (err) {
+      el.remDiagOut.textContent = err.message || String(err);
     }
   });
 

@@ -197,6 +197,17 @@ details[open] > .card__title { margin-bottom: var(--gap); }
 .secondary-btn.danger { color: var(--danger); }
 
 .settings-rule { border: 0; border-top: 1px solid #2b303b; margin: 4px 0 18px; }
+.diag-out {
+  margin: 8px 0 0;
+  padding: 10px;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: var(--text-dim);
+  overflow-x: auto;
+}
 .check-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .check-row input { width: 18px; height: 18px; }
 .row-2 { display: flex; gap: 8px; }

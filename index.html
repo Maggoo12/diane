@@ -157,7 +157,12 @@
           <span>Enable notifications</span>
         </label>
         <small id="rem-status" class="muted" aria-live="polite"></small>
-        <button id="rem-test" class="secondary-btn" type="button">Send test notification</button>
+        <div class="debrief-actions">
+          <button id="rem-test" class="secondary-btn" type="button">Send test notification</button>
+          <button id="rem-fire" class="secondary-btn" type="button">Fire reminder now</button>
+          <button id="rem-diag" class="secondary-btn" type="button">Diagnose</button>
+        </div>
+        <pre id="rem-diag-out" class="diag-out" hidden></pre>
       </div>
 
       <label class="field">

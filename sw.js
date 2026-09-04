@@ -12,7 +12,7 @@
  * Entry data is NOT here — that lives in IndexedDB (see js/db.js).
  */
 
-const CACHE_VERSION = 'diane-v10';
+const CACHE_VERSION = 'diane-v11';
 const SHELL = [
   './',
   './index.html',
@@ -90,6 +90,23 @@ function withMeta(mode, fn) {
 const metaSet = (k, v) => withMeta('readwrite', (s) => s.put({ k, v }));
 const metaGet = (k) => withMeta('readonly', (s) => s.get(k)).then((rec) => (rec ? rec.v : undefined));
 
+function wroteOn(ymd) {
+  return new Promise((resolve) => {
+    const req = indexedDB.open('diane', DB_VERSION);
+    req.onerror = () => resolve(false);
+    req.onsuccess = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('entries')) { db.close(); return resolve(false); }
+      const all = db.transaction('entries', 'readonly').objectStore('entries').getAll();
+      all.onsuccess = () => {
+        db.close();
+        resolve((all.result || []).some((e) => (e.createdAt || '').slice(0, 10) === ymd));
+      };
+      all.onerror = () => { db.close(); resolve(false); };
+    };
+  });
+}
+
 function mondayOf(date = new Date()) {
   const d = new Date(date);
   d.setHours(0, 0, 0, 0);
@@ -154,7 +171,12 @@ async function fireDueReminders() {
   if (s.dailyTime) {
     const due = new Date(now); due.setHours(dh, dm, 0, 0);
     const snooze = await metaGet('rem.dailySnoozeUntil');
-    if (now >= due && (await metaGet('rem.lastDaily')) !== today && (!snooze || now >= new Date(snooze))) {
+    if (
+      now >= due &&
+      (await metaGet('rem.lastDaily')) !== today &&
+      (!snooze || now >= new Date(snooze)) &&
+      !(await wroteOn(today))
+    ) {
       await safeShow('Diane', {
         tag: 'diane-daily', body: 'Anything worth logging today?', data: { kind: 'daily' },
         actions: [{ action: 'snooze', title: 'Snooze 1h' }, { action: 'open', title: 'Open' }],
